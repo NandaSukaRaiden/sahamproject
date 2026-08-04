@@ -1166,3 +1166,421 @@ input:checked + .slider:before {
   .ft-form-row { grid-template-columns: 1fr; }
   .ft-lev-btns { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ============================================================
+   REALTIME STREAM PANEL — SSE Live Data
+   ============================================================ */
+
+/* ── Live badge di topbar ── */
+.sse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  background: #00e67612;
+  border: 1px solid #00e67640;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #00e676;
+  cursor: default;
+  user-select: none;
+}
+.sse-badge .sse-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #00e676;
+  animation: rtPulse 1.4s infinite;
+}
+.sse-badge.offline {
+  background: #ff3d3d10;
+  border-color: #ff3d3d30;
+  color: #ff3d3d;
+}
+.sse-badge.offline .sse-dot { background: #ff3d3d; animation: none; }
+
+/* ── Panel Realtime ── */
+.rt-live-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.rt-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--bg-800);
+}
+.rt-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Portfolio summary dalam panel ── */
+.rt-summary {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--panel-border);
+}
+.rt-stat {
+  flex: 1;
+  padding: 10px 14px;
+  border-right: 1px solid var(--panel-border);
+}
+.rt-stat:last-child { border-right: none; }
+.rt-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+.rt-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+/* ── Posisi realtime ── */
+.rt-positions { padding: 6px 0; }
+.rt-pos-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 60px 90px 60px;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 12px;
+  transition: background 0.15s;
+}
+.rt-pos-ticker {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--brand-1);
+  font-family: 'JetBrains Mono', monospace;
+}
+.rt-pos-price {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+}
+.rt-pos-lot  { color: var(--text-muted); text-align: center; }
+.rt-pos-pnl  { text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+/* ── Fund Flow Panel ── */
+#rt-flow-panel {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.rt-flow-row {
+  display: grid;
+  grid-template-columns: 60px 90px 70px 90px 70px 1fr;
+  align-items: center;
+  padding: 5px 14px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  transition: background 0.3s;
+  border-bottom: 1px solid #131d2840;
+}
+.rt-flow-row:last-child { border-bottom: none; }
+.rt-flow-ticker { font-weight: 700; color: var(--brand-1); font-size: 12px; }
+.rt-flow-price  { color: var(--text-primary); }
+.rt-flow-dir    { font-size: 11px; }
+.rt-flow-vol    { font-size: 10px; }
+.rt-flow-time   { text-align: right; }
+
+/* ── Trade Feed ── */
+#rt-trades-feed { padding: 4px 0; }
+.rt-trade-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  font-size: 11px;
+  border-bottom: 1px solid #131d2840;
+  font-family: 'JetBrains Mono', monospace;
+  transition: background 0.4s;
+}
+.rt-trade-row:last-child { border-bottom: none; }
+.rt-trade-row.rt-buy  { border-left: 3px solid var(--green); }
+.rt-trade-row.rt-sell { border-left: 3px solid var(--red); }
+.rt-trade-type { font-weight: 700; min-width: 55px; }
+
+/* ── Flash animation ── */
+@keyframes rtFlashGreen { 0%,100%{background:transparent} 50%{background:#00e67625} }
+@keyframes rtFlashRed   { 0%,100%{background:transparent} 50%{background:#ff3d3d25} }
+
+/* ============================================================
+   SELL DRAWER — slide up panel jual saham dari portfolio
+   ============================================================ */
+
+.sell-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--bg-800);
+  border: 1px solid var(--panel-border);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  z-index: 1001;
+  padding: 0 0 32px 0;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: 0 -8px 40px #00000060;
+}
+.sell-drawer.open {
+  transform: translateY(0);
+}
+
+.sd-handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+  cursor: pointer;
+}
+.sd-handle div {
+  width: 40px;
+  height: 4px;
+  background: var(--panel-border);
+  border-radius: 2px;
+}
+
+.sd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 20px 14px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.sd-ticker-big {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--red);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.sd-section {
+  padding: 14px 20px 0;
+}
+.sd-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* Quick percent buttons */
+.sd-lot-quick {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.sd-lot-quick button {
+  flex: 1;
+  padding: 7px 0;
+  background: var(--bg-700);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sd-lot-quick button:hover {
+  background: #ff3d3d18;
+  border-color: #ff3d3d60;
+  color: var(--red);
+}
+
+/* Lot row */
+.sd-lot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sd-lot-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg-700);
+  border: 1px solid var(--panel-border);
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sd-lot-btn:hover { background: var(--bg-600); }
+
+.sd-lot-input {
+  flex: 1;
+  background: var(--bg-700);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: center;
+  padding: 8px 0;
+  outline: none;
+}
+.sd-lot-input:focus { border-color: var(--red); }
+
+/* Slider */
+.sd-slider {
+  width: 100%;
+  accent-color: var(--red);
+  height: 6px;
+  cursor: pointer;
+}
+
+/* Price input */
+.sd-price-input {
+  width: 100%;
+  background: var(--bg-700);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 10px 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+.sd-price-input:focus { border-color: var(--red); }
+
+/* Calculation box */
+.sd-calc {
+  margin: 14px 20px 0;
+  background: var(--bg-700);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+.sd-calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.sd-calc-label { color: var(--text-muted); }
+.sd-calc-val {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+}
+
+/* Execute button */
+.sd-exec-btn {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 16px 20px 0;
+  padding: 16px;
+  background: linear-gradient(135deg, #ff3d3d, #cc0000);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.sd-exec-btn:hover   { opacity: 0.9; }
+.sd-exec-btn:active  { transform: scale(0.98); }
+.sd-exec-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sd-cancel-btn {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 10px 20px 0;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sd-cancel-btn:hover { background: var(--bg-700); }
+
+/* ── Posisi card list (ganti tabel) ── */
+.positions-card-list {
+  padding: 8px 0;
+}
+.pos-card-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--panel-border);
+  transition: background 0.15s;
+}
+.pos-card-row:last-child { border-bottom: none; }
+.pos-card-row:hover { background: var(--bg-700); }
+
+.pos-card-left  { flex: 0 0 120px; }
+.pos-card-mid   { flex: 1; }
+.pos-card-pnl   { flex: 0 0 110px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+.pos-card-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; }
+
+.pos-card-ticker {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--brand-1);
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+}
+.pos-card-ticker:hover { color: var(--text-primary); }
+.pos-card-meta  { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.pos-card-price { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.pos-card-mktval{ font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.pos-btn-analyze {
+  padding: 5px 12px;
+  background: var(--bg-600);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.pos-btn-analyze:hover { background: var(--bg-500); color: var(--text-primary); }
+
+.pos-btn-sell {
+  padding: 5px 12px;
+  background: #ff3d3d15;
+  border: 1px solid #ff3d3d50;
+  border-radius: 8px;
+  color: #ff3d3d;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.pos-btn-sell:hover { background: #ff3d3d30; }

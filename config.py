@@ -87,4 +87,5 @@ RISK_CONFIG = {
 # ─── Timezone ──────────────────────────────────────────────
 TIMEZONE = "Asia/Jakarta"
 
-print(f"[Config] Loaded. Gemini model: {GEMINI_MODEL} | Capital: Rp {INITIAL_CAPITAL:,.0f}")
+import logging as _logging
+_logging.getLogger(__name__).info(f"[Config] Loaded. Gemini model: {GEMINI_MODEL} | Capital: Rp {INITIAL_CAPITAL:,.0f}")

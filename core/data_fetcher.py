@@ -201,9 +201,9 @@ def get_price_history(
 
         df = df.reset_index()
 
-        # Flatten MultiIndex columns if any
+        # Flatten MultiIndex columns if any (yfinance 1.5+ returns MultiIndex)
         if isinstance(df.columns, pd.MultiIndex):
-            df.columns = [col[0] if col[1] == "" else col[0] for col in df.columns]
+            df.columns = [col[0] for col in df.columns]
 
         df.columns = [c.lower() for c in df.columns]
         df = df.rename(columns={"date": "timestamp", "datetime": "timestamp"})

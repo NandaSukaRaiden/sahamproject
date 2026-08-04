@@ -10,12 +10,264 @@ let currentChart    = null;
 let currentOrderTab = 'buy';
 let allHistory      = [];
 
+// ─── SSE Realtime Stream ──────────────────────────────────────
+let _sseSource = null;
+
+function startSSEStream() {
+  if (_sseSource && _sseSource.readyState !== EventSource.CLOSED) return;
+
+  _sseSource = new EventSource(`${API}/stream`);
+
+  const badge = document.getElementById('sse-status-badge');
+  const badgeTxt = document.getElementById('sse-status-text');
+
+  _sseSource.onopen = () => {
+    if (badge) badge.classList.remove('offline');
+    if (badgeTxt) badgeTxt.textContent = 'LIVE';
+  };
+
+  _sseSource.onerror = () => {
+    if (badge) badge.classList.add('offline');
+    if (badgeTxt) badgeTxt.textContent = 'RECONNECT';
+    setTimeout(startSSEStream, 5000);
+  };
+  _sseSource.addEventListener('ping', () => {}); // keepalive, abaikan
+
+  _sseSource.addEventListener('portfolio', e => {
+    try {
+      const d = JSON.parse(e.data);
+      if (d.error) return;
+      _updatePortfolioNumbers(d);
+    } catch(_) {}
+  });
+
+  // ── trade: notifikasi order masuk instan ──
+  _sseSource.addEventListener('trade', e => {
+    try {
+      const d = JSON.parse(e.data);
+      _onTradeEvent(d);
+    } catch(_) {}
+  });
+
+  // ── flow: dana keluar/masuk watchlist ──
+  _sseSource.addEventListener('flow', e => {
+    try {
+      const d = JSON.parse(e.data);
+      _updateFlowTicker(d);
+    } catch(_) {}
+  });
+
+  // ── prices: harga posisi aktif ──
+  _sseSource.addEventListener('prices', e => {
+    try {
+      const d = JSON.parse(e.data);
+      _updatePositionPrices(d.prices || {});
+    } catch(_) {}
+  });
+
+  _sseSource.onerror = () => {
+    // Auto-reconnect setelah 5 detik
+    setTimeout(startSSEStream, 5000);
+  };
+}
+
+/** Update angka portfolio di semua halaman tanpa render ulang */
+function _updatePortfolioNumbers(d) {
+  // ── Dashboard stats ──
+  const pnlColor = d.total_pnl_rp >= 0 ? 'var(--green)' : 'var(--red)';
+  const totalEl = document.getElementById('stat-total');
+  if (totalEl) totalEl.textContent = `Rp ${formatNum(d.total_portfolio_value, 0)}`;
+
+  const pnlEl = document.getElementById('stat-pnl');
+  if (pnlEl) pnlEl.innerHTML =
+    `<span style="color:${pnlColor}">${d.total_pnl_rp >= 0 ? '+' : ''}Rp ${formatNum(d.total_pnl_rp, 0)} (${d.total_pnl_pct >= 0 ? '+' : ''}${d.total_pnl_pct.toFixed(2)}%)</span>`;
+
+  const cashEl = document.getElementById('stat-cash');
+  if (cashEl) cashEl.textContent = `Rp ${formatNum(d.cash, 0)}`;
+
+  // ── Live Portfolio Panel (khusus di page portfolio) ──
+  const livePanel = document.getElementById('rt-portfolio-panel');
+  if (livePanel) _renderLivePortfolio(d, livePanel);
+
+  // Timestamp
+  const tsEl = document.getElementById('rt-port-timestamp');
+  if (tsEl) tsEl.textContent = new Date().toLocaleTimeString('id-ID', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta'
+  }) + ' WIB';
+
+  // ── Live Flow Panel ──
+  const flowPanel = document.getElementById('rt-flow-panel');
+  if (flowPanel && (!flowPanel.children.length || flowPanel.querySelector('.empty-msg'))) {
+    flowPanel.innerHTML = '';
+  }
+
+  // ── Update posisi di dashboard ──
+  if (d.positions) renderDashboardPositions(d.positions);
+
+  // ── Update recent orders di Trade page ──
+  if (d.last_trades) _renderLiveTrades(d.last_trades);
+}
+
+/** Flash animasi saat nilai berubah */
+function _flashEl(el, color) {
+  if (!el) return;
+  el.style.transition = 'background 0.1s';
+  el.style.background = color + '30';
+  setTimeout(() => { el.style.background = ''; }, 600);
+}
+
+/** Render live portfolio di panel realtime */
+function _renderLivePortfolio(d, container) {
+  const pnlColor = d.total_pnl_rp >= 0 ? 'var(--green)' : 'var(--red)';
+  let html = `
+    <div class="rt-summary">
+      <div class="rt-stat">
+        <div class="rt-label">Total Portfolio</div>
+        <div class="rt-value">Rp ${formatNum(d.total_portfolio_value, 0)}</div>
+      </div>
+      <div class="rt-stat">
+        <div class="rt-label">Cash</div>
+        <div class="rt-value">Rp ${formatNum(d.cash, 0)}</div>
+      </div>
+      <div class="rt-stat">
+        <div class="rt-label">P&L Total</div>
+        <div class="rt-value" style="color:${pnlColor}">
+          ${d.total_pnl_rp >= 0 ? '+' : ''}Rp ${formatNum(d.total_pnl_rp, 0)}<br>
+          <span style="font-size:11px">${d.total_pnl_pct >= 0 ? '+' : ''}${d.total_pnl_pct.toFixed(2)}%</span>
+        </div>
+      </div>
+    </div>
+    <div class="rt-positions">`;
+
+  if (!d.positions || !d.positions.length) {
+    html += '<p class="empty-msg" style="padding:10px 14px;font-size:12px">Belum ada posisi aktif</p>';
+  } else {
+    (d.positions || []).forEach(p => {
+      const c = p.pnl_rp >= 0 ? 'var(--green)' : 'var(--red)';
+      html += `
+        <div class="rt-pos-row">
+          <div class="rt-pos-ticker" onclick="analyzeStock('${p.ticker}')" style="cursor:pointer">${p.ticker}</div>
+          <div class="rt-pos-price">Rp ${formatNum(p.current_price, 0)}</div>
+          <div class="rt-pos-lot">${p.lots} lot</div>
+          <div class="rt-pos-pnl" style="color:${c}">
+            ${p.pnl_rp >= 0 ? '+' : ''}Rp ${formatNum(p.pnl_rp, 0)}<br>
+            <span style="font-size:10px">${p.pnl_pct >= 0 ? '+' : ''}${p.pnl_pct.toFixed(2)}%</span>
+          </div>
+          <div style="padding-right:8px">
+            <button onclick="quickSell('${p.ticker}',${p.current_price},${p.lots})"
+              style="padding:3px 10px;background:#ff3d3d18;border:1px solid #ff3d3d60;color:#ff3d3d;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">
+              Jual
+            </button>
+          </div>
+        </div>`;
+    });
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+/** Render live fund flow ticker */
+function _updateFlowTicker(d) {
+  const dirColor = d.flow_direction === 'MASUK' ? 'var(--green)' : 'var(--red)';
+  const dirIcon  = d.flow_direction === 'MASUK' ? '↑' : '↓';
+
+  // Update di watchlist row jika ada
+  const row = document.querySelector(`#watchlist-tbody tr[data-ticker="${d.ticker}"]`);
+  if (row) {
+    const priceCell = row.querySelector('.price-cell');
+    const chgCell   = row.querySelector('.chg-cell');
+    if (priceCell && d.price) {
+      priceCell.textContent = `Rp ${formatNum(d.price, 0)}`;
+      _flashEl(priceCell, d.change_pct >= 0 ? '#00e676' : '#ff3d3d');
+    }
+    if (chgCell && d.change_pct !== undefined) {
+      chgCell.textContent  = `${d.change_pct >= 0 ? '+' : ''}${d.change_pct.toFixed(2)}%`;
+      chgCell.className    = `chg-cell ${d.change_pct >= 0 ? 'change-up' : 'change-down'}`;
+    }
+  }
+
+  // Update live flow panel
+  const flowPanel = document.getElementById('rt-flow-panel');
+  if (!flowPanel) return;
+  let existing = flowPanel.querySelector(`[data-flow-ticker="${d.ticker}"]`);
+  if (!existing) {
+    existing = document.createElement('div');
+    existing.dataset.flowTicker = d.ticker;
+    existing.className = 'rt-flow-row';
+    flowPanel.appendChild(existing);
+  }
+  existing.innerHTML = `
+    <span class="rt-flow-ticker">${d.ticker}</span>
+    <span class="rt-flow-price">Rp ${formatNum(d.price || 0, 0)}</span>
+    <span class="rt-flow-chg" style="color:${d.change_pct >= 0 ? 'var(--green)' : 'var(--red)'}">
+      ${d.change_pct >= 0 ? '+' : ''}${(d.change_pct || 0).toFixed(2)}%
+    </span>
+    <span class="rt-flow-dir" style="color:${dirColor};font-weight:700">${dirIcon} ${d.flow_direction}</span>
+    <span class="rt-flow-vol" style="color:var(--text-muted)">${formatVolume(d.volume || 0)}</span>
+    <span class="rt-flow-time" style="color:var(--text-muted);font-size:10px">
+      ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' })}
+    </span>`;
+  _flashEl(existing, d.flow_direction === 'MASUK' ? '#00e676' : '#ff3d3d');
+}
+
+/** Update harga posisi di tabel portfolio */
+function _updatePositionPrices(prices) {
+  // Di portfolio table
+  document.querySelectorAll('#portfolio-full-content .port-positions-table tbody tr').forEach(row => {
+    const tickerEl = row.querySelector('.ticker-cell');
+    if (!tickerEl) return;
+    const ticker = tickerEl.textContent.trim();
+    const p = prices[ticker];
+    if (!p || !p.price) return;
+    const cells = row.querySelectorAll('.price-cell');
+    if (cells[1]) { // current price column
+      const old = cells[1].textContent;
+      cells[1].textContent = `Rp ${formatNum(p.price, 0)}`;
+      if (old !== cells[1].textContent) _flashEl(cells[1], p.change_pct >= 0 ? '#00e676' : '#ff3d3d');
+    }
+  });
+}
+
+/** Render live trade feed */
+function _renderLiveTrades(trades) {
+  const el = document.getElementById('rt-trades-feed');
+  if (!el) return;
+  if (!trades || !trades.length) {
+    el.innerHTML = '<p class="empty-msg" style="font-size:11px;padding:8px">Belum ada order</p>';
+    return;
+  }
+  el.innerHTML = trades.map(t => `
+    <div class="rt-trade-row ${t.type === 'BUY' ? 'rt-buy' : 'rt-sell'}">
+      <span class="rt-trade-type">${t.type === 'BUY' ? '🟢' : '🔴'} ${t.type}</span>
+      <strong>${t.ticker}</strong>
+      <span>Rp ${formatNum(t.price, 0)}</span>
+      <span>${t.lots} lot</span>
+      ${t.pnl_rp != null ? `<span style="color:${t.pnl_rp >= 0 ? 'var(--green)' : 'var(--red)'};font-size:10px">${t.pnl_rp >= 0 ? '+' : ''}Rp ${formatNum(t.pnl_rp, 0)}</span>` : ''}
+      <span style="font-size:10px;color:var(--text-muted)">${(t.timestamp || '').substring(11, 19)}</span>
+    </div>`).join('');
+}
+
+/** Notifikasi instan saat trade terjadi */
+function _onTradeEvent(d) {
+  const icon  = d.action === 'BUY' ? '🟢' : '🔴';
+  const color = d.action === 'BUY' ? 'success' : 'info';
+  showToast(`${icon} ${d.action} ${d.lots} lot ${d.ticker} @ Rp ${formatNum(d.price, 0)}`, color);
+
+  // Refresh panels langsung
+  loadPortfolioStats();
+  loadRecentOrders();
+  if (document.getElementById('page-portfolio')?.classList.contains('active')) {
+    loadPortfolioFull();
+  }
+}
+
 // ─── Init ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   updateClock();
   setInterval(updateClock, 1000);
   checkMarketStatus();
-  setInterval(checkMarketStatus, 60000); // refresh market status every minute
+  setInterval(checkMarketStatus, 60000);
   loadPortfolioStats();
   loadWatchlist();
   loadMarketOutlook();
@@ -24,6 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
   checkServerHealth();
   loadRecentOrders();
   loadIHSG();
+
+  // ── Mulai SSE realtime stream ──
+  startSSEStream();
 
   // Auto-refresh IHSG di topbar setiap 30 detik
   setInterval(loadIHSG, 30000);
@@ -1287,31 +1542,27 @@ async function loadPortfolioFull() {
           <button class="btn-sm" onclick="loadPortfolioFull()">↻ Refresh</button>
         </div>
         ${d.positions.length ? `
-        <table class="port-positions-table">
-          <thead><tr>
-            <th>Saham</th><th>Lot</th><th>Avg Price</th><th>Harga Saat Ini</th>
-            <th>Mkt Value</th><th>P&L</th><th>Weight</th><th>Aksi</th>
-          </tr></thead>
-          <tbody>
-            ${d.positions.map(p => `
-            <tr>
-              <td><strong class="ticker-cell">${p.ticker}</strong></td>
-              <td>${p.lots}</td>
-              <td class="price-cell">Rp ${formatNum(p.avg_price,0)}</td>
-              <td class="price-cell">Rp ${formatNum(p.current_price,0)}</td>
-              <td class="price-cell">Rp ${formatNum(p.market_value,0)}</td>
-              <td class="price-cell" style="color:${p.pnl_rp>=0?'var(--green)':'var(--red)'}">
-                ${p.pnl_rp>=0?'+':''}Rp ${formatNum(p.pnl_rp,0)}<br>
-                <span style="font-size:11px">${p.pnl_pct>=0?'+':''}${p.pnl_pct.toFixed(2)}%</span>
-              </td>
-              <td>${p.weight_pct}%</td>
-              <td>
-                <button class="btn-analyze-row" onclick="analyzeStock('${p.ticker}')">Analisis</button>
-                <button class="btn-analyze-row" style="margin-top:4px;color:var(--red)" onclick="quickSell('${p.ticker}',${p.current_price},${p.lots})">Jual</button>
-              </td>
-            </tr>`).join('')}
-          </tbody>
-        </table>` : '<p class="empty-msg">Belum ada posisi aktif</p>'}
+        <div class="positions-card-list">
+          ${d.positions.map(p => `
+          <div class="pos-card-row">
+            <div class="pos-card-left">
+              <div class="pos-card-ticker">${p.ticker}</div>
+              <div class="pos-card-meta">${p.lots} lot &nbsp;·&nbsp; Avg Rp ${formatNum(p.avg_price,0)}</div>
+            </div>
+            <div class="pos-card-mid">
+              <div class="pos-card-price">Rp ${formatNum(p.current_price,0)}</div>
+              <div class="pos-card-mktval">Nilai: Rp ${formatNum(p.market_value,0)}</div>
+            </div>
+            <div class="pos-card-pnl" style="color:${p.pnl_rp>=0?'var(--green)':'var(--red)'}">
+              <div>${p.pnl_rp>=0?'+':''}Rp ${formatNum(p.pnl_rp,0)}</div>
+              <div style="font-size:11px">${p.pnl_pct>=0?'+':''}${p.pnl_pct.toFixed(2)}%</div>
+            </div>
+            <div class="pos-card-actions">
+              <button class="pos-btn-analyze" onclick="analyzeStock('${p.ticker}')">📊 Analisis</button>
+              <button class="pos-btn-sell" onclick="openSellDrawer('${p.ticker}',${p.current_price},${p.lots},${p.avg_price})">🔴 Jual</button>
+            </div>
+          </div>`).join('')}
+        </div>` : '<p class="empty-msg">Belum ada posisi aktif</p>'}
       </div>`;
   } catch(e) {
     el.innerHTML = `<p class="empty-msg">Error: ${e.message}</p>`;
@@ -1720,18 +1971,103 @@ async function prepareOrder(action) {
   }
 }
 
-// ── quickSell (dipanggil dari portfolio page) ─────────────────
+// ── quickSell → buka sell drawer ─────────────────────────────
 function quickSell(ticker, price, lots) {
-  showPage('trade');
-  document.getElementById('ft-ticker').value      = ticker;
-  document.getElementById('ft-price-input').value = price;
-  document.getElementById('ft-lots').value        = lots;
-  ftCurrentPrice = price;
-  const priceEl = document.getElementById('ft-price-val');
-  if (priceEl) priceEl.textContent = `Rp ${formatNum(price, 0)}`;
-  const nameEl = document.getElementById('ft-company-name');
-  if (nameEl) nameEl.textContent = ticker;
-  ftUpdateCalc();
+  openSellDrawer(ticker, price, lots, 0);
+}
+
+// ── Sell Drawer ───────────────────────────────────────────────
+let _sdTicker = '', _sdMaxLots = 1, _sdAvg = 0;
+
+function openSellDrawer(ticker, currentPrice, maxLots, avgPrice) {
+  _sdTicker  = ticker;
+  _sdMaxLots = maxLots;
+  _sdAvg     = avgPrice;
+
+  document.getElementById('sd-ticker').textContent    = ticker;
+  document.getElementById('sd-price').textContent     = 'Rp ' + formatNum(currentPrice, 0);
+  document.getElementById('sd-lots-max').textContent  = maxLots;
+  document.getElementById('sd-avg-price').textContent = 'Rp ' + formatNum(avgPrice, 0);
+
+  const pnlPct = avgPrice ? ((currentPrice - avgPrice) / avgPrice * 100) : 0;
+  const pnlEl  = document.getElementById('sd-pnl');
+  pnlEl.textContent = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%';
+  pnlEl.style.color = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const slider = document.getElementById('sd-lots-slider');
+  slider.max   = maxLots;
+  slider.value = maxLots;
+  document.getElementById('sd-lots-input').value  = maxLots;
+  document.getElementById('sd-sell-price').value  = currentPrice;
+
+  sdUpdateCalc();
+
+  document.getElementById('sell-drawer-overlay').classList.remove('hidden');
+  document.getElementById('sell-drawer').classList.add('open');
+}
+
+function closeSellDrawer() {
+  document.getElementById('sell-drawer-overlay').classList.add('hidden');
+  document.getElementById('sell-drawer').classList.remove('open');
+}
+
+function sdSetLots(val) {
+  const v = Math.max(1, Math.min(_sdMaxLots, parseInt(val) || 1));
+  document.getElementById('sd-lots-input').value  = v;
+  document.getElementById('sd-lots-slider').value = v;
+  sdUpdateCalc();
+}
+
+function sdSetPercent(pct) {
+  sdSetLots(Math.max(1, Math.round(_sdMaxLots * pct / 100)));
+}
+
+function sdUpdateCalc() {
+  const price  = parseFloat(document.getElementById('sd-sell-price').value) || 0;
+  const lots   = parseInt(document.getElementById('sd-lots-input').value) || 1;
+  const shares = lots * 100;
+  const gross  = price * shares;
+  const fee    = gross * 0.0029;
+  const net    = gross - fee;
+  const pnl    = _sdAvg ? (net - _sdAvg * shares) : 0;
+  const pnlPct = _sdAvg ? (pnl / (_sdAvg * shares) * 100) : 0;
+
+  document.getElementById('sd-calc-gross').textContent = 'Rp ' + formatNum(gross, 0);
+  document.getElementById('sd-calc-fee').textContent   = 'Rp ' + formatNum(fee, 0);
+  document.getElementById('sd-calc-net').textContent   = 'Rp ' + formatNum(net, 0);
+
+  const pnlEl = document.getElementById('sd-calc-pnl');
+  pnlEl.textContent = (pnl >= 0 ? '+' : '') + 'Rp ' + formatNum(pnl, 0) + ' (' + (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%)';
+  pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+async function executeSellDrawer() {
+  const ticker = _sdTicker;
+  const price  = parseFloat(document.getElementById('sd-sell-price').value) || 0;
+  const lots   = parseInt(document.getElementById('sd-lots-input').value) || 0;
+  if (!ticker || price <= 0 || lots <= 0) { showToast('Lengkapi harga dan lot', 'error'); return; }
+
+  const btn = document.getElementById('sd-exec-btn');
+  btn.disabled = true; btn.textContent = 'Memproses...';
+
+  try {
+    const res  = await fetch(API + '/trade/fast-sell', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker, price, lots, note: 'Jual dari Portfolio' }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || ('Jual ' + lots + ' lot ' + ticker + ' berhasil'), 'success');
+      closeSellDrawer();
+      loadPortfolioFull(); loadPortfolioStats(); loadRecentOrders();
+    } else {
+      showToast('Gagal: ' + data.error, 'error');
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🔴 Konfirmasi Jual';
+  }
 }
 
 // ─── Order ────────────────────────────────────────────────────
@@ -1870,15 +2206,6 @@ async function executeOrder() {
     isBuy ? 'Konfirmasi BUY' : 'Konfirmasi SELL',
     !isBuy
   );
-}
-
-function quickSell(ticker, price, lots) {
-  document.getElementById('order-ticker').value = ticker;
-  document.getElementById('order-price').value  = price;
-  document.getElementById('order-lots').value   = lots;
-  switchOrderTab('sell');
-  updateOrderSummary();
-  showPage('trade');
 }
 
 async function prepareOrder(action) {

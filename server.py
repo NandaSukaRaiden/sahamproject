@@ -667,7 +667,6 @@ def autotrade_clear_logs():
 @app.route("/api/autotrade/trigger", methods=["POST"])
 def autotrade_trigger_scan():
     """Manual trigger to start scanning immediately."""
-    global autotrade_engine
     engine = globals().get('autotrade_engine')
     if engine and engine.is_scanning:
         return jsonify({"success": False, "error": "Scanning sedang berjalan, harap tunggu..."}), 400
@@ -776,10 +775,17 @@ def fast_buy():
     # Invalidate cache portfolio
     _cache.pop("watchlist_summary", None)
 
+    # Broadcast ke SSE clients
+    _sse_broadcast("trade", {
+        "action": "BUY", "ticker": ticker, "price": price,
+        "lots": actual_lots, "leverage": leverage,
+        "total_cost": result.get("total_cost", 0),
+        "remaining_cash": result.get("remaining_cash", 0),
+        "message": result.get("message", ""),
+        "timestamp": datetime.now().isoformat(),
+    })
+
     return jsonify(result)
-
-
-@app.route("/api/trade/fast-sell", methods=["POST"])
 def fast_sell():
     """Fast Sell — eksekusi jual 1 klik + kirim alert Telegram."""
     data      = request.json or {}
@@ -805,6 +811,19 @@ def fast_sell():
     )
     result["alert"] = alert_result
     _cache.pop("watchlist_summary", None)
+
+    # Broadcast ke SSE clients
+    _sse_broadcast("trade", {
+        "action": "SELL", "ticker": ticker, "price": price,
+        "lots": lots,
+        "pnl_rp": result.get("pnl_rp", 0),
+        "pnl_pct": result.get("pnl_pct", 0),
+        "net_proceed": result.get("net_proceed", 0),
+        "remaining_cash": result.get("remaining_cash", 0),
+        "message": result.get("message", ""),
+        "timestamp": datetime.now().isoformat(),
+    })
+
     return jsonify(result)
 
 
@@ -903,6 +922,250 @@ def leverage_options():
             {"value": k, **v} for k, v in LEVERAGE_CONFIG.items()
         ]
     })
+
+
+# ─── Server-Sent Events (SSE) — Realtime Stream ──────────────
+import queue as _queue
+from flask import Response, stream_with_context
+
+# Global broadcast queues: { client_id: Queue }
+_sse_clients: dict = {}
+_sse_lock = threading.Lock()
+
+
+def _sse_broadcast(event: str, data: dict):
+    """Push event ke semua SSE client yang tersambung."""
+    msg = f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+    with _sse_lock:
+        dead = []
+        for cid, q in _sse_clients.items():
+            try:
+                q.put_nowait(msg)
+            except Exception:
+                dead.append(cid)
+        for cid in dead:
+            _sse_clients.pop(cid, None)
+
+
+def _portfolio_snapshot():
+    """Ambil snapshot portfolio ringan (harga dari cache)."""
+    try:
+        from trading.portfolio import load_portfolio, load_trade_history
+        portfolio = load_portfolio()
+        positions = portfolio.get("positions", {})
+        cash = portfolio.get("cash", 0)
+        init_cap = portfolio.get("initial_capital", 100_000_000)
+
+        positions_out = []
+        total_mkt = 0
+        for ticker, pos in positions.items():
+            cached = get_cached(f"price_{ticker}", ttl=20)
+            price = cached.get("price", pos.get("avg_price", 0)) if cached else pos.get("avg_price", 0)
+            shares = pos.get("shares", 0)
+            avg = pos.get("avg_price", 0)
+            mkt = price * shares
+            cost = avg * shares
+            pnl = mkt - cost
+            pnl_pct = (pnl / cost * 100) if cost else 0
+            total_mkt += mkt
+            positions_out.append({
+                "ticker":        ticker,
+                "lots":          pos.get("lots", 0),
+                "shares":        shares,
+                "avg_price":     avg,
+                "current_price": price,
+                "market_value":  round(mkt, 0),
+                "pnl_rp":        round(pnl, 0),
+                "pnl_pct":       round(pnl_pct, 2),
+            })
+
+        total_val = total_mkt + cash
+        total_pnl = total_val - init_cap
+        total_pnl_pct = (total_pnl / init_cap * 100) if init_cap else 0
+
+        history = load_trade_history()
+        last5 = list(reversed(history[-5:])) if history else []
+
+        return {
+            "cash":                cash,
+            "total_market_value":  round(total_mkt, 0),
+            "total_portfolio_value": round(total_val, 0),
+            "total_pnl_rp":        round(total_pnl, 0),
+            "total_pnl_pct":       round(total_pnl_pct, 2),
+            "positions":           positions_out,
+            "last_trades":         last5,
+            "timestamp":           datetime.now().isoformat(),
+        }
+    except Exception as e:
+        return {"error": str(e), "timestamp": datetime.now().isoformat()}
+
+
+def _flow_snapshot(ticker: str):
+    """Ambil snapshot flow dana ringan dari cache / hitung ulang cepat."""
+    try:
+        import yfinance as yf
+        jk = f"{ticker.upper()}.JK"
+        stock = yf.Ticker(jk)
+        fi = stock.fast_info
+
+        price     = float(getattr(fi, "last_price",      None) or getattr(fi, "previous_close", 0) or 0)
+        prev      = float(getattr(fi, "previous_close",  price) or price)
+        volume    = int(getattr(fi,   "last_volume",     0) or 0)
+        avg_vol   = int(getattr(fi,   "three_month_average_volume", 1) or 1)
+        change    = price - prev
+        change_pct = (change / prev * 100) if prev else 0
+        vol_ratio  = volume / avg_vol if avg_vol else 1.0
+
+        # Dana masuk/keluar estimasi sederhana: positif = masuk, negatif = keluar
+        money_flow_rp = change * volume   # Rp — proxy beli-jual hari ini
+        flow_dir = "MASUK" if money_flow_rp >= 0 else "KELUAR"
+        flow_strength = min(100, abs(vol_ratio * 50))
+
+        return {
+            "ticker":        ticker.upper(),
+            "price":         round(price, 0),
+            "change":        round(change, 0),
+            "change_pct":    round(change_pct, 2),
+            "volume":        volume,
+            "vol_ratio":     round(vol_ratio, 2),
+            "money_flow_rp": round(money_flow_rp, 0),
+            "flow_direction": flow_dir,
+            "flow_strength": round(flow_strength, 1),
+            "timestamp":     datetime.now().isoformat(),
+        }
+    except Exception as e:
+        return {"ticker": ticker.upper(), "error": str(e), "timestamp": datetime.now().isoformat()}
+
+
+def _sse_portfolio_worker():
+    """Background thread: push portfolio snapshot + watchlist flow setiap 3 detik."""
+    import time as _time
+    logger.info("[SSE] Portfolio stream worker started")
+    while True:
+        try:
+            snap = _portfolio_snapshot()
+            _sse_broadcast("portfolio", snap)
+
+            # Harga tickers di posisi aktif
+            from trading.portfolio import load_portfolio
+            positions = load_portfolio().get("positions", {})
+            if positions:
+                prices = {}
+                for ticker in list(positions.keys()):
+                    cached = get_cached(f"price_{ticker}", ttl=20)
+                    if cached:
+                        prices[ticker] = cached
+                if prices:
+                    _sse_broadcast("prices", {"prices": prices, "timestamp": datetime.now().isoformat()})
+
+        except Exception as e:
+            logger.debug(f"[SSE worker] {e}")
+        _time.sleep(3)
+
+
+def _sse_flow_worker():
+    """Background thread: push flow data watchlist setiap 5 detik."""
+    import time as _time
+    logger.info("[SSE] Flow stream worker started")
+    idx = 0
+    while True:
+        try:
+            # Rotasi watchlist agar tidak semua sekaligus (hemat API)
+            tickers = DEFAULT_WATCHLIST[:8]
+            ticker = tickers[idx % len(tickers)]
+            idx += 1
+
+            # Gunakan cache price dulu
+            cached = get_cached(f"price_{ticker}", ttl=20)
+            if cached:
+                flow_data = {
+                    "ticker":         ticker,
+                    "price":          cached.get("price", 0),
+                    "change_pct":     cached.get("change_pct", 0),
+                    "volume":         cached.get("volume", 0),
+                    "flow_direction": "MASUK" if cached.get("change_pct", 0) >= 0 else "KELUAR",
+                    "timestamp":      datetime.now().isoformat(),
+                }
+                _sse_broadcast("flow", flow_data)
+        except Exception as e:
+            logger.debug(f"[SSE flow worker] {e}")
+        _time.sleep(5)
+
+
+# Start SSE background workers saat module di-import
+_sse_portfolio_thread = threading.Thread(target=_sse_portfolio_worker, daemon=True, name="SSEPortfolioWorker")
+_sse_flow_thread      = threading.Thread(target=_sse_flow_worker,      daemon=True, name="SSEFlowWorker")
+_sse_portfolio_thread.start()
+_sse_flow_thread.start()
+
+
+@app.route("/api/stream")
+def sse_stream():
+    """
+    SSE endpoint — client subscribe untuk dapat push realtime:
+    - event: portfolio  → snapshot portfolio + P&L tiap 3 detik
+    - event: prices     → harga posisi aktif tiap 3 detik
+    - event: flow       → dana keluar/masuk tiap 5 detik
+    - event: trade      → notifikasi order baru (instant)
+    - event: ping       → keepalive tiap 10 detik
+    """
+    import queue as _queue_mod
+    import time as _time
+
+    client_id = f"{id(threading.current_thread())}_{_time.time()}"
+    q = _queue_mod.Queue(maxsize=50)
+    with _sse_lock:
+        _sse_clients[client_id] = q
+
+    logger.info(f"[SSE] Client {client_id[:12]} connected. Total: {len(_sse_clients)}")
+
+    def generate():
+        # Kirim snapshot awal segera
+        try:
+            snap = _portfolio_snapshot()
+            yield f"event: portfolio\ndata: {json.dumps(snap, ensure_ascii=False)}\n\n"
+        except Exception:
+            pass
+
+        last_ping = _time.time()
+        try:
+            while True:
+                # Ping keepalive setiap 10 detik agar koneksi tidak putus
+                if _time.time() - last_ping > 10:
+                    yield f"event: ping\ndata: {json.dumps({'t': datetime.now().isoformat()})}\n\n"
+                    last_ping = _time.time()
+
+                try:
+                    msg = q.get(timeout=1.0)
+                    yield msg
+                except _queue_mod.Empty:
+                    pass
+        except GeneratorExit:
+            pass
+        finally:
+            with _sse_lock:
+                _sse_clients.pop(client_id, None)
+            logger.info(f"[SSE] Client {client_id[:12]} disconnected. Total: {len(_sse_clients)}")
+
+    resp = Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control":    "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection":       "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
+    return resp
+
+
+@app.route("/api/stream/broadcast-trade", methods=["POST"])
+def broadcast_trade_event():
+    """Internal endpoint: broadcast trade event ke semua SSE clients."""
+    data = request.json or {}
+    _sse_broadcast("trade", {**data, "timestamp": datetime.now().isoformat()})
+    return jsonify({"success": True, "clients": len(_sse_clients)})
 
 
 # ─────────────────────────────────────────────────────────────
