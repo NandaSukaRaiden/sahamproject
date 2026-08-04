@@ -1,0 +1,32 @@
+# AI Trading Bot Saham Indonesia - Dependencies
+# Install: pip install -r requirements.txt
+
+# Core
+flask==3.0.3
+flask-cors==4.0.1
+python-dotenv==1.0.1
+
+# Data & Market
+yfinance==0.2.43
+pandas==2.2.2
+numpy==1.26.4
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.2.2
+
+# Technical Analysis
+ta==0.11.0
+pandas-ta==0.3.14b0
+
+# AI
+google-genai==1.16.0
+
+# News & Web scraping
+feedparser==6.0.11
+newspaper3k==0.2.8
+aiohttp==3.9.5
+
+# Utilities
+schedule==1.2.2
+pytz==2024.1
+python-dateutil==2.9.0

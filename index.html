@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Trading KIZUNA MITRA </title>
+  <meta name="description" content="AI Trading Bot Saham IDX — Analisis fundamental, teknikal, berita, dan dana asing dengan Google Gemini AI untuk keputusan trading yang sangat rinci." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ─── SIDEBAR ──────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">🤖</div>
+        <div class="logo-text">
+          <span class="logo-main">KIZUNA Trader</span>
+          <span class="logo-sub">IDX Pro</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+        <span class="nav-icon">📊</span><span>Dashboard</span>
+      </button>
+      <button class="nav-item" id="nav-analyze" onclick="showPage('analyze')">
+        <span class="nav-icon">🔍</span><span>Analisis AI</span>
+      </button>
+      <button class="nav-item" id="nav-portfolio" onclick="showPage('portfolio')">
+        <span class="nav-icon">💼</span><span>Portfolio</span>
+      </button>
+      <button class="nav-item" id="nav-trade" onclick="showPage('trade')">
+        <span class="nav-icon">⚡</span><span>Order</span>
+      </button>
+      <button class="nav-item" id="nav-autotrade" onclick="showPage('autotrade')">
+        <span class="nav-icon">🤖</span><span>Auto Trading</span>
+      </button>
+      <button class="nav-item" id="nav-history" onclick="showPage('history')">
+        <span class="nav-icon">📋</span><span>Riwayat</span>
+      </button>
+      <button class="nav-item" id="nav-settings" onclick="showPage('settings')">
+        <span class="nav-icon">⚙️</span><span>Pengaturan</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="market-status" id="market-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Memeriksa...</span>
+      </div>
+      <div class="sidebar-time" id="sidebar-time"></div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN CONTENT ──────────────────────────── -->
+  <main class="main-content">
+    <!-- HEADER BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        <div class="search-wrapper">
+          <input type="text" id="search-input" class="search-bar" placeholder="Cari saham IDX... (contoh: BBCA)" 
+            onkeydown="if(event.key==='Enter') quickSearch()" />
+          <button class="search-btn" onclick="quickSearch()">🔍</button>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="ihsg-badge" id="ihsg-badge">
+          <span class="ihsg-label">IHSG</span>
+          <span id="ihsg-price">—</span>
+          <span id="ihsg-change" class="change-neutral">—</span>
+        </div>
+        <div class="gemini-badge">
+          <span>🧠 Gemini AI</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- PAGE: DASHBOARD                               -->
+    <!-- ══════════════════════════════════════════════ -->
+    <section class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>Dashboard Pasar</h1>
+        <p class="page-desc">Ringkasan kondisi saham IDX & portofolio Anda</p>
+      </div>
+
+      <!-- Portfolio Summary Cards -->
+      <div class="stats-grid" id="portfolio-stats">
+        <div class="stat-card glow-green">
+          <div class="stat-icon">💼</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Portfolio</div>
+            <div class="stat-value" id="stat-total">Loading...</div>
+            <div class="stat-sub" id="stat-pnl">—</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💵</div>
+          <div class="stat-info">
+            <div class="stat-label">Saldo Tunai</div>
+            <div class="stat-value" id="stat-cash">Loading...</div>
+            <div class="stat-sub" id="stat-cash-ratio">—</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📈</div>
+          <div class="stat-info">
+            <div class="stat-label">Unrealized P&L</div>
+            <div class="stat-value" id="stat-unrealized">Loading...</div>
+            <div class="stat-sub">Posisi aktif</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-info">
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-value" id="stat-winrate">Loading...</div>
+            <div class="stat-sub" id="stat-trades">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Market Outlook + Watchlist -->
+      <div class="two-col-layout">
+        <!-- Watchlist -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>📋 Watchlist IDX</h3>
+            <button class="btn-refresh" onclick="loadWatchlist()">↻ Refresh</button>
+          </div>
+          <div class="watchlist-table-wrapper">
+            <table class="watchlist-table">
+              <thead>
+                <tr>
+                  <th>Emiten</th>
+                  <th>Harga</th>
+                  <th>Chg%</th>
+                  <th>Volume</th>
+                  <th>F.Score</th>
+                  <th>Signal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="watchlist-tbody">
+                <tr><td colspan="7" class="loading-row">Memuat data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- AI Market Outlook -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🧠 AI Market Outlook</h3>
+            <button class="btn-refresh" onclick="loadMarketOutlook()">↻ Refresh</button>
+          </div>
+          <div id="market-outlook-content" class="outlook-content">
+            <div class="loading-spinner">
+              <div class="spinner"></div>
+              <span>Menganalisis pasar...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Positions -->
+      <div class="panel" id="positions-panel">
+        <div class="panel-header">
+          <h3>🎯 Posisi Aktif</h3>
+          <button class="btn-sm" onclick="showPage('portfolio')">Lihat Semua →</button>
+        </div>
+        <div id="positions-content">
+          <p class="empty-msg">Belum ada posisi aktif. Mulai analisis saham dan lakukan order beli.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- PAGE: ANALISIS AI                             -->
+    <!-- ══════════════════════════════════════════════ -->
+    <section class="page" id="page-analyze">
+      <div class="page-header">
+        <h1>Analisis AI Saham</h1>
+        <p class="page-desc">Analisis komprehensif: Fundamental, Teknikal, Berita & Dana Asing</p>
+      </div>
+
+      <!-- Search bar analisis -->
+      <div class="analyze-search-bar">
+        <div class="analyze-input-group">
+          <input type="text" id="analyze-ticker" class="analyze-input" 
+            placeholder="Masukkan kode saham (contoh: BBCA, TLKM, GOTO)" 
+            onkeydown="if(event.key==='Enter') startAnalysis()" />
+          <button class="btn-analyze" id="analyze-btn" onclick="startAnalysis()">
+            <span class="btn-icon">🤖</span>
+            <span>Analisis dengan AI</span>
+          </button>
+        </div>
+        <div class="quick-picks">
+          <span class="qp-label">Quick:</span>
+          <button class="qp-btn" onclick="analyzeStock('BBCA')">BBCA</button>
+          <button class="qp-btn" onclick="analyzeStock('BBRI')">BBRI</button>
+          <button class="qp-btn" onclick="analyzeStock('TLKM')">TLKM</button>
+          <button class="qp-btn" onclick="analyzeStock('GOTO')">GOTO</button>
+          <button class="qp-btn" onclick="analyzeStock('ASII')">ASII</button>
+          <button class="qp-btn" onclick="analyzeStock('BYAN')">BYAN</button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="analyze-loading" class="analyze-loading hidden">
+        <div class="ai-loading-animation">
+          <div class="ai-pulse">🤖</div>
+          <h3>AI Sedang Menganalisis...</h3>
+          <div class="progress-steps" id="progress-steps">
+            <div class="step" id="step-data">⏳ Mengambil data saham</div>
+            <div class="step" id="step-fund">⏳ Analisis fundamental</div>
+            <div class="step" id="step-tech">⏳ Analisis teknikal</div>
+            <div class="step" id="step-news">⏳ Analisis berita & sentimen</div>
+            <div class="step" id="step-flow">⏳ Analisis aliran dana</div>
+            <div class="step" id="step-ai">⏳ Gemini AI memproses...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analysis Results -->
+      <div id="analyze-results" class="hidden">
+        <!-- Stock Header -->
+        <div class="stock-header-card" id="stock-header">
+          <!-- Diisi oleh JS -->
+        </div>
+
+        <!-- Score Overview -->
+        <div class="scores-overview" id="scores-overview">
+          <!-- Diisi oleh JS -->
+        </div>
+
+        <!-- AI Recommendation Banner -->
+        <div class="ai-recommendation" id="ai-recommendation">
+          <!-- Diisi oleh JS -->
+        </div>
+
+        <!-- Chart + Indicators -->
+        <div class="chart-section">
+          <div class="panel chart-panel">
+            <div class="panel-header">
+              <h3>📈 Candlestick Chart</h3>
+              <div class="chart-controls">
+                <button class="period-btn" onclick="changePeriod('1d', this)">1H</button>
+                <button class="period-btn" onclick="changePeriod('5d', this)">5H</button>
+                <button class="period-btn" onclick="changePeriod('1mo', this)">1B</button>
+                <button class="period-btn active" onclick="changePeriod('3mo', this)">3B</button>
+                <button class="period-btn" onclick="changePeriod('6mo', this)">6B</button>
+                <button class="period-btn" onclick="changePeriod('1y', this)">1T</button>
+              </div>
+            </div>
+            <div id="price-chart" class="chart-container"></div>
+          </div>
+        </div>
+
+        <!-- 4-Panel Analysis Grid -->
+        <div class="analysis-grid">
+          <!-- Fundamental -->
+          <div class="panel analysis-panel">
+            <div class="panel-header">
+              <h3>📊 Fundamental</h3>
+              <div class="score-badge" id="fund-score-badge">—</div>
+            </div>
+            <div id="fundamental-content"></div>
+          </div>
+
+          <!-- Technical -->
+          <div class="panel analysis-panel">
+            <div class="panel-header">
+              <h3>📈 Teknikal</h3>
+              <div class="score-badge" id="tech-score-badge">—</div>
+            </div>
+            <div id="technical-content"></div>
+          </div>
+
+          <!-- News -->
+          <div class="panel analysis-panel">
+            <div class="panel-header">
+              <h3>📰 Berita & Sentimen</h3>
+              <div class="score-badge" id="news-score-badge">—</div>
+            </div>
+            <div id="news-content"></div>
+          </div>
+
+          <!-- Flow -->
+          <div class="panel analysis-panel">
+            <div class="panel-header">
+              <h3>💰 Aliran Dana</h3>
+              <div class="score-badge" id="flow-score-badge">—</div>
+            </div>
+            <div id="flow-content"></div>
+          </div>
+        </div>
+
+        <!-- AI Detailed Analysis -->
+        <div class="panel ai-detail-panel" id="ai-detail-panel">
+          <div class="panel-header">
+            <h3>🧠 Analisis Lengkap Gemini AI</h3>
+            <div class="gemini-badge-sm">Powered by Gemini</div>
+          </div>
+          <div id="ai-analysis-content"></div>
+        </div>
+
+        <!-- Order Action Bar -->
+        <div class="action-bar" id="action-bar">
+          <button class="btn-buy" id="btn-buy-action" onclick="prepareOrder('BUY')">
+            🟢 ORDER BUY
+          </button>
+          <button class="btn-sell" id="btn-sell-action" onclick="prepareOrder('SELL')">
+            🔴 ORDER SELL
+          </button>
+          <button class="btn-neutral" onclick="showPage('trade')">
+            ⚡ Buka Order Panel
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- PAGE: PORTFOLIO                               -->
+    <!-- ══════════════════════════════════════════════ -->
+    <section class="page" id="page-portfolio">
+      <div class="page-header">
+        <h1>Portfolio Saya</h1>
+        <p class="page-desc">Paper trading portfolio dengan simulasi biaya broker Indonesia</p>
+      </div>
+
+      <div id="portfolio-full-content">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Memuat portfolio...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- PAGE: ORDER / FAST TRADE                      -->
+    <!-- ══════════════════════════════════════════════ -->
+    <section class="page" id="page-trade">
+      <div class="page-header">
+        <h1>⚡ Fast Trade Center</h1>
+        <p class="page-desc">Order cepat dengan leverage simulator + sinyal otomatis ke Telegram/broker</p>
+      </div>
+
+      <!-- ── Mode Toggle ── -->
+      <div class="ft-mode-bar">
+        <button class="ft-mode-btn active" id="ft-mode-paper" onclick="setTradeMode('paper')">
+          📄 Paper Trading
+        </button>
+        <button class="ft-mode-btn" id="ft-mode-signal" onclick="setTradeMode('signal')">
+          📱 Kirim Sinyal ke Broker
+        </button>
+        <div class="ft-mode-info" id="ft-mode-info">
+          Mode simulasi — order masuk ke portfolio virtual
+        </div>
+      </div>
+
+      <div class="ft-layout">
+
+        <!-- ── LEFT: Fast Order Panel ── -->
+        <div class="ft-left">
+
+          <!-- Ticker + Harga Realtime -->
+          <div class="panel ft-ticker-panel">
+            <div class="ft-ticker-row">
+              <div class="ft-ticker-input-wrap">
+                <input type="text" id="ft-ticker" class="ft-ticker-input"
+                  placeholder="BBCA" maxlength="6"
+                  oninput="this.value=this.value.toUpperCase()"
+                  onkeydown="if(event.key==='Enter') ftFetchPrice()" />
+                <button class="ft-fetch-btn" onclick="ftFetchPrice()">⚡ Cek</button>
+              </div>
+              <div class="ft-price-display" id="ft-price-display">
+                <span class="ft-price-big" id="ft-price-val">—</span>
+                <span class="ft-price-chg" id="ft-price-chg">—</span>
+              </div>
+            </div>
+            <div class="ft-company-name" id="ft-company-name">Masukkan kode saham</div>
+            <!-- Quick Pick -->
+            <div class="ft-quick-picks">
+              <span class="ft-qp-label">Quick:</span>
+              <button class="ft-qp" onclick="ftQuickPick('BBCA')">BBCA</button>
+              <button class="ft-qp" onclick="ftQuickPick('BBRI')">BBRI</button>
+              <button class="ft-qp" onclick="ftQuickPick('BMRI')">BMRI</button>
+              <button class="ft-qp" onclick="ftQuickPick('TLKM')">TLKM</button>
+              <button class="ft-qp" onclick="ftQuickPick('GOTO')">GOTO</button>
+              <button class="ft-qp" onclick="ftQuickPick('ASII')">ASII</button>
+            </div>
+          </div>
+
+          <!-- Leverage Selector -->
+          <div class="panel ft-lev-panel">
+            <div class="ft-section-title">⚡ Leverage</div>
+            <div class="ft-lev-btns" id="ft-lev-btns">
+              <button class="ft-lev-btn active" data-lev="1" onclick="ftSetLeverage(1, this)">
+                <span class="lev-val">1x</span>
+                <span class="lev-sub">Reguler</span>
+              </button>
+              <button class="ft-lev-btn" data-lev="2" onclick="ftSetLeverage(2, this)">
+                <span class="lev-val" style="color:#fbbf24">2x</span>
+                <span class="lev-sub">Margin</span>
+              </button>
+              <button class="ft-lev-btn" data-lev="3" onclick="ftSetLeverage(3, this)">
+                <span class="lev-val" style="color:#f97316">3x</span>
+                <span class="lev-sub">Margin+</span>
+              </button>
+              <button class="ft-lev-btn" data-lev="5" onclick="ftSetLeverage(5, this)">
+                <span class="lev-val" style="color:#ef4444">5x</span>
+                <span class="lev-sub">Full</span>
+              </button>
+            </div>
+            <!-- Leverage Detail -->
+            <div class="ft-lev-detail" id="ft-lev-detail">
+              <div style="color:var(--text-muted);font-size:12px">Pilih saham dan leverage untuk melihat detail</div>
+            </div>
+          </div>
+
+          <!-- Lot Control + SL/TP -->
+          <div class="panel ft-order-form">
+            <div class="ft-form-row">
+              <div class="ft-form-group">
+                <label>Harga (Rp)</label>
+                <input type="number" id="ft-price-input" class="ft-input" placeholder="0"
+                  oninput="ftUpdateCalc()" />
+              </div>
+              <div class="ft-form-group">
+                <label>Jumlah Lot</label>
+                <div class="ft-lot-ctrl">
+                  <button onclick="ftChangeLot(-5)">−5</button>
+                  <button onclick="ftChangeLot(-1)">−</button>
+                  <input type="number" id="ft-lots" class="ft-input ft-lot-input" value="1" min="1"
+                    oninput="ftUpdateCalc()" />
+                  <button onclick="ftChangeLot(1)">+</button>
+                  <button onclick="ftChangeLot(5)">+5</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fast Lot Presets -->
+            <div class="ft-preset-row">
+              <span class="ft-preset-label">Preset:</span>
+              <button class="ft-preset" onclick="ftSetLot(1)">1L</button>
+              <button class="ft-preset" onclick="ftSetLot(5)">5L</button>
+              <button class="ft-preset" onclick="ftSetLot(10)">10L</button>
+              <button class="ft-preset" onclick="ftSetLot(25)">25L</button>
+              <button class="ft-preset" onclick="ftSetLot(50)">50L</button>
+              <button class="ft-preset ft-preset-special" onclick="ftSetMaxLot()">MAX</button>
+            </div>
+
+            <div class="ft-form-row">
+              <div class="ft-form-group">
+                <label>Stop Loss (Rp) <span style="color:var(--red)">SL</span></label>
+                <input type="number" id="ft-sl" class="ft-input" placeholder="Opsional"
+                  oninput="ftUpdateCalc()" />
+              </div>
+              <div class="ft-form-group">
+                <label>Take Profit (Rp) <span style="color:var(--green)">TP</span></label>
+                <input type="number" id="ft-tp" class="ft-input" placeholder="Opsional"
+                  oninput="ftUpdateCalc()" />
+              </div>
+            </div>
+
+            <div class="ft-form-group" style="margin-top:6px">
+              <label>Catatan</label>
+              <input type="text" id="ft-note" class="ft-input" placeholder="Alasan order..." />
+            </div>
+          </div>
+
+          <!-- Order Summary -->
+          <div class="panel ft-summary" id="ft-summary">
+            <div class="ft-summary-title">📊 Ringkasan Order</div>
+            <div class="ft-summary-body" id="ft-summary-body">
+              <div style="color:var(--text-muted);font-size:12px">Isi form untuk melihat ringkasan</div>
+            </div>
+          </div>
+
+          <!-- BUY / SELL Buttons -->
+          <div class="ft-action-btns">
+            <button class="ft-btn-buy" id="ft-btn-buy" onclick="ftExecute('BUY')">
+              <span class="ft-btn-icon">🟢</span>
+              <span class="ft-btn-text">BUY</span>
+              <span class="ft-btn-sub" id="ft-buy-sub">—</span>
+            </button>
+            <button class="ft-btn-sell" id="ft-btn-sell" onclick="ftExecute('SELL')">
+              <span class="ft-btn-icon">🔴</span>
+              <span class="ft-btn-text">SELL</span>
+              <span class="ft-btn-sub" id="ft-sell-sub">—</span>
+            </button>
+          </div>
+
+          <!-- Hotkey hint -->
+          <div class="ft-hotkey-hint">
+            ⌨️ Shortcut: <kbd>B</kbd> = Buy &nbsp;|&nbsp; <kbd>S</kbd> = Sell &nbsp;|&nbsp; <kbd>R</kbd> = Refresh Harga
+          </div>
+        </div>
+
+        <!-- ── RIGHT: Info Panel ── -->
+        <div class="ft-right">
+
+          <!-- Posisi Aktif untuk saham ini -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>🎯 Posisi Aktif</h3>
+              <button class="btn-refresh" onclick="ftLoadPosition()">↻</button>
+            </div>
+            <div id="ft-position-content">
+              <p class="empty-msg">Pilih saham untuk lihat posisi</p>
+            </div>
+          </div>
+
+          <!-- Risk Calculator -->
+          <div class="panel">
+            <div class="panel-header"><h3>⚠️ Kalkulasi Risiko</h3></div>
+            <div id="ft-risk-content">
+              <p class="empty-msg">Isi SL untuk kalkulasi risiko</p>
+            </div>
+          </div>
+
+          <!-- Order History -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>⏱ Order Terbaru</h3>
+              <button class="btn-refresh" onclick="loadRecentOrders()">↻</button>
+            </div>
+            <div id="recent-orders-content">
+              <p class="empty-msg">Belum ada order</p>
+            </div>
+          </div>
+
+          <!-- Telegram Alert Status -->
+          <div class="panel ft-alert-status-panel">
+            <div class="panel-header">
+              <h3>📱 Status Alert</h3>
+              <button class="btn-sm" onclick="showPage('settings')">Atur →</button>
+            </div>
+            <div id="ft-alert-status">
+              <div class="loading-spinner"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- PAGE: HISTORY                                 -->
+    <!-- ══════════════════════════════════════════════ -->
+    <section class="page" id="page-history">
+      <div class="page-header">
+        <h1>Riwayat Transaksi</h1>
+        <p class="page-desc">Semua transaksi buy/sell dan performa trading Anda</p>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <h3>📋 Semua Transaksi</h3>
+          <div class="history-filters">
+            <button class="filter-btn active" onclick="filterHistory('all', this)">Semua</button>
+            <button class="filter-btn" onclick="filterHistory('BUY', this)">Buy</button>
+            <button class="filter-btn" onclick="filterHistory('SELL', this)">Sell</button>
+          </div>
+        </div>
+        <div id="history-table-content">
+          <div class="loading-spinner"><div class="spinner"></div><span>Memuat...</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- PAGE: AUTO TRADING                             -->
+    <!-- ══════════════════════════════════════════════ -->
+    <section class="page" id="page-autotrade">
+      <div class="page-header">
+        <h1>Auto Trading AI</h1>
+        <p class="page-desc">Eksekusi analisis dan trade secara otomatis oleh Google Gemini AI</p>
+      </div>
+
+      <div class="autotrade-layout">
+        <!-- Control Panel & Settings -->
+        <div class="autotrade-left">
+          <!-- Toggle Panel -->
+          <div class="panel">
+            <div class="panel-header"><h3>⚡ Status Engine AI</h3></div>
+            <div class="status-panel-body" style="padding:18px">
+              <div class="status-toggle-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <span class="status-title-text" style="font-weight:700">Auto Trading Mode (AI)</span>
+                <label class="switch">
+                  <input type="checkbox" id="autotrade-toggle-checkbox" onchange="toggleAutoTrade()" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+              <div class="engine-info-box" style="background:var(--bg-700);border:1px solid var(--panel-border);border-radius:8px;padding:12px;font-size:13px">
+                <div class="info-row" style="display:flex;justify-content:space-between;margin-bottom:8px">
+                  <span>Status Engine:</span>
+                  <span id="engine-status-badge" class="engine-badge offline" style="font-weight:800;padding:2px 8px;border-radius:4px">OFFLINE</span>
+                </div>
+                <div class="info-row" style="display:flex;justify-content:space-between">
+                  <span>Scan Terakhir:</span>
+                  <span id="engine-last-scan">—</span>
+                </div>
+              </div>
+              <button class="btn-execute" id="btn-trigger-scan" style="background:var(--brand-1);color:var(--bg-900);font-weight:700;margin-top:12px;" onclick="triggerAutoScan()">
+                🚀 Jalankan Scan Watchlist Sekarang
+              </button>
+            </div>
+          </div>
+
+          <!-- Settings Panel -->
+          <div class="panel">
+            <div class="panel-header"><h3>⚙️ Parameter Auto Trading</h3></div>
+            <div class="order-form">
+              <div class="form-group">
+                <label>Interval Scan (Menit)</label>
+                <input type="number" id="autotrade-interval" min="5" value="10" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label>Alokasi Posisi Maksimum Per Saham (%)</label>
+                <input type="number" id="autotrade-max-alloc" min="5" max="100" value="20" class="form-input" />
+                <div class="lot-info">Maksimal persen modal untuk satu emiten</div>
+              </div>
+              <div class="form-group">
+                <label>Risiko Per Transaksi (%)</label>
+                <input type="number" id="autotrade-risk" min="0.1" max="10" step="0.1" value="1.0" class="form-input" />
+                <div class="lot-info">Untuk kalkulasi position sizing otomatis</div>
+              </div>
+              <div class="form-group">
+                <label>Batas Confidence AI Minimum (%)</label>
+                <input type="number" id="autotrade-min-conf" min="50" max="100" value="80" class="form-input" />
+                <div class="lot-info">Minimal level keyakinan AI untuk eksekusi order</div>
+              </div>
+              <div class="form-group" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                <label style="margin-bottom:0">Aktifkan Proteksi SL/TP & Trailing</label>
+                <input type="checkbox" id="autotrade-enable-sl" checked style="width:20px; height:20px; cursor:pointer;" />
+              </div>
+              <div class="form-group">
+                <label>Batas Trailing Stop (%)</label>
+                <input type="number" id="autotrade-trailing-stop" min="2" max="15" step="0.5" value="5.0" class="form-input" />
+                <div class="lot-info">Trailing stop dari titik harga tertinggi (ideal 5%)</div>
+              </div>
+              <button class="btn-execute" onclick="saveAutoTradeSettings()">
+                💾 Simpan Konfigurasi
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Logs -->
+        <div class="autotrade-right">
+          <div class="panel console-panel" style="height:100%;display:flex;flex-direction:column">
+            <div class="panel-header">
+              <h3>📟 AI Console Log</h3>
+              <button class="btn-refresh" onclick="clearConsoleLogs()">Hapus Log</button>
+            </div>
+            <div class="console-body" id="console-logs" style="background:#05070a;border-top:1px solid var(--panel-border);flex:1;padding:18px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;overflow-y:auto;height:450px;max-height:600px;">
+              <div class="console-line system" style="color:var(--text-muted)">[SYSTEM] Console diinisialisasi. Menunggu log dari server...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- PAGE: SETTINGS                                -->
+    <!-- ══════════════════════════════════════════════ -->
+    <section class="page" id="page-settings">
+      <div class="page-header">
+        <h1>Pengaturan</h1>
+        <p class="page-desc">Konfigurasi bot trading dan API key</p>
+      </div>
+
+      <div class="settings-grid">
+        <div class="panel settings-panel">
+          <div class="panel-header"><h3>🔑 API Configuration</h3></div>
+          <div class="settings-content">
+            <div class="setting-item">
+              <div class="setting-label">Gemini API Key</div>
+              <div class="setting-desc">Set di file <code>.env</code> pada direktori proyek</div>
+              <div class="setting-value code-block">GEMINI_API_KEY=your_key_here</div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">Cara mendapatkan API Key:</div>
+              <ol class="setting-steps">
+                <li>Buka <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a></li>
+                <li>Klik "Create API Key"</li>
+                <li>Copy key dan paste di file <code>.env</code></li>
+                <li>Restart server: <code>python server.py</code></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel settings-panel">
+          <div class="panel-header"><h3>💰 Modal & Risiko</h3></div>
+          <div class="settings-content">
+            <div class="setting-item">
+              <div class="setting-label">Modal Awal Paper Trading</div>
+              <div class="setting-desc">Set di <code>.env</code>: <code>INITIAL_CAPITAL=100000000</code></div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">Reset Portfolio</div>
+              <div class="setting-desc">Hapus semua posisi dan mulai dari awal</div>
+              <button class="btn-danger" onclick="resetPortfolioConfirm()">🔄 Reset Portfolio</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel settings-panel">
+          <div class="panel-header"><h3>🔧 Server Status</h3></div>
+          <div id="server-status-content">
+            <div class="setting-item">
+              <div class="setting-label">API Server</div>
+              <div id="api-health" class="setting-value">Memeriksa...</div>
+            </div>
+          </div>
+          <button class="btn-sm mt-2" onclick="checkServerHealth()">Cek Status</button>
+        </div>
+
+        <!-- Telegram Alert Panel -->
+        <div class="panel settings-panel" style="grid-column: 1 / -1;">
+          <div class="panel-header">
+            <h3>📱 Telegram Alert — Sinyal Trading ke Broker</h3>
+            <div class="gemini-badge-sm">Fast Trade Integration</div>
+          </div>
+          <div id="alert-config-content">
+            <div class="loading-spinner"><div class="spinner"></div><span>Memuat konfigurasi...</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ─── TOAST NOTIFICATION ────────────────────── -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ─── ORDER CONFIRMATION MODAL ─────────────── -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" id="modal-box">
+      <div class="modal-header" id="modal-header">Konfirmasi Order</div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal()">Batal</button>
+        <button class="btn-confirm" id="modal-confirm-btn">Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
