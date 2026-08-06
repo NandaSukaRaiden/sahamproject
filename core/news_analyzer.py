@@ -177,22 +177,22 @@ def detect_whale_in_article(article: Dict, ticker: str) -> Dict[str, Any]:
     # Tentukan arah
     if buy_hits and not sell_hits:
         direction = "MASUK"
-        icon      = "🐋🟢"
+        icon      = "▲"
         severity  = "HIGH" if (len(buy_hits) >= 2 or is_ticker_specific) else "MEDIUM"
         alert_msg = f"WHALE MASUK: {', '.join(buy_hits[:3])}"
     elif sell_hits and not buy_hits:
         direction = "KELUAR"
-        icon      = "🐳🔴"
+        icon      = "▼"
         severity  = "HIGH" if (len(sell_hits) >= 2 or is_ticker_specific) else "MEDIUM"
         alert_msg = f"WHALE KELUAR: {', '.join(sell_hits[:3])}"
     elif buy_hits or sell_hits:
         direction = "MIXED"
-        icon      = "🐋🟡"
+        icon      = "●"
         severity  = "MEDIUM"
         alert_msg = f"Aktivitas Whale Campuran: {', '.join((buy_hits + sell_hits)[:3])}"
     else:
         direction = "NETRAL"
-        icon      = "🐬🔵"
+        icon      = "○"
         severity  = "LOW"
         alert_msg = f"Aktivitas Big Player: {', '.join(neutral_hits[:3])}"
 

@@ -37,10 +37,10 @@ _log_lock = threading.Lock()
 # Default Config
 DEFAULT_CONFIG = {
     "enabled": False,
-    "interval_minutes": 10,
+    "interval_minutes": 5,        # Diubah dari 10 ke 5 agar lebih responsif
     "max_allocation_pct": 20.0,
     "risk_per_trade_pct": 1.0,
-    "min_confidence_pct": 80,
+    "min_confidence_pct": 75,     # Diubah dari 80 ke 75 agar lebih aktif
     "enable_stop_loss_monitor": True,  # Pantau stop loss secara real-time
     "trailing_stop_pct": 5.0,          # Trailing stop 5% dari harga tertinggi
     "watchlist": DEFAULT_WATCHLIST[:8],

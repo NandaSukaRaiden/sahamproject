@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Trading KIZUNA MITRA </title>
+  <title>KIZUNA MITRA — IDX Trading Terminal</title>
   <meta name="description" content="AI Trading Bot Saham IDX — Analisis fundamental, teknikal, berita, dan dana asing dengan Google Gemini AI untuk keputusan trading yang sangat rinci." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,9 +16,16 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="logo">
-        <div class="logo-icon">🤖</div>
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M9 4v3M9 13v7"/>
+            <rect x="7.5" y="7" width="3" height="6" rx="0.5"/>
+            <path d="M17 8v3M17 16v4"/>
+            <rect x="15.5" y="11" width="3" height="5" rx="0.5"/>
+          </svg>
+        </div>
         <div class="logo-text">
-          <span class="logo-main">KIZUNA Trader</span>
+          <span class="logo-main">KIZUNA</span>
           <span class="logo-sub">IDX Pro</span>
         </div>
       </div>
@@ -26,25 +33,25 @@
 
     <nav class="sidebar-nav">
       <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
-        <span class="nav-icon">📊</span><span>Dashboard</span>
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg></span><span>Dashboard</span>
       </button>
       <button class="nav-item" id="nav-analyze" onclick="showPage('analyze')">
-        <span class="nav-icon">🔍</span><span>Analisis AI</span>
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span>Analisis AI</span>
       </button>
       <button class="nav-item" id="nav-portfolio" onclick="showPage('portfolio')">
-        <span class="nav-icon">💼</span><span>Portfolio</span>
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M16 15h.01"/></svg></span><span>Portfolio</span>
       </button>
       <button class="nav-item" id="nav-trade" onclick="showPage('trade')">
-        <span class="nav-icon">⚡</span><span>Order</span>
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg></span><span>Order</span>
       </button>
       <button class="nav-item" id="nav-autotrade" onclick="showPage('autotrade')">
-        <span class="nav-icon">🤖</span><span>Auto Trading</span>
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z"/></svg></span><span>Auto Trading</span>
       </button>
       <button class="nav-item" id="nav-history" onclick="showPage('history')">
-        <span class="nav-icon">📋</span><span>Riwayat</span>
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span><span>Riwayat</span>
       </button>
       <button class="nav-item" id="nav-settings" onclick="showPage('settings')">
-        <span class="nav-icon">⚙️</span><span>Pengaturan</span>
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="var(--bg-800)"/><circle cx="15" cy="12" r="2" fill="var(--bg-800)"/><circle cx="7" cy="18" r="2" fill="var(--bg-800)"/></svg></span><span>Pengaturan</span>
       </button>
     </nav>
 
@@ -66,7 +73,9 @@
         <div class="search-wrapper">
           <input type="text" id="search-input" class="search-bar" placeholder="Cari saham IDX... (contoh: BBCA)" 
             onkeydown="if(event.key==='Enter') quickSearch()" />
-          <button class="search-btn" onclick="quickSearch()">🔍</button>
+          <button class="search-btn" onclick="quickSearch()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:15px;height:15px;vertical-align:middle"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+          </button>
         </div>
       </div>
       <div class="topbar-right">
@@ -76,7 +85,7 @@
           <span id="ihsg-change" class="change-neutral">—</span>
         </div>
         <div class="gemini-badge">
-          <span>🧠 Gemini AI</span>
+          <span>Gemini AI</span>
         </div>
         <div class="sse-badge" id="sse-status-badge" title="Realtime stream status">
           <span class="sse-dot"></span>
@@ -97,7 +106,7 @@
       <!-- Portfolio Summary Cards -->
       <div class="stats-grid" id="portfolio-stats">
         <div class="stat-card glow-green">
-          <div class="stat-icon">💼</div>
+          <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M16 15h.01"/></svg></div>
           <div class="stat-info">
             <div class="stat-label">Total Portfolio</div>
             <div class="stat-value" id="stat-total">Loading...</div>
@@ -105,7 +114,7 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">💵</div>
+          <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9.5h.01M18 14.5h.01"/></svg></div>
           <div class="stat-info">
             <div class="stat-label">Saldo Tunai</div>
             <div class="stat-value" id="stat-cash">Loading...</div>
@@ -113,7 +122,7 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">📈</div>
+          <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-9"/><path d="M15 7h5v5"/></svg></div>
           <div class="stat-info">
             <div class="stat-label">Unrealized P&L</div>
             <div class="stat-value" id="stat-unrealized">Loading...</div>
@@ -121,7 +130,7 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">🏆</div>
+          <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3M12 15v4M8 21h8"/></svg></div>
           <div class="stat-info">
             <div class="stat-label">Win Rate</div>
             <div class="stat-value" id="stat-winrate">Loading...</div>
@@ -135,7 +144,7 @@
         <!-- Watchlist -->
         <div class="panel">
           <div class="panel-header">
-            <h3>📋 Watchlist IDX</h3>
+            <h3>Watchlist IDX</h3>
             <button class="btn-refresh" onclick="loadWatchlist()">↻ Refresh</button>
           </div>
           <div class="watchlist-table-wrapper">
@@ -161,7 +170,7 @@
         <!-- AI Market Outlook -->
         <div class="panel">
           <div class="panel-header">
-            <h3>🧠 AI Market Outlook</h3>
+            <h3>AI Market Outlook</h3>
             <button class="btn-refresh" onclick="loadMarketOutlook()">↻ Refresh</button>
           </div>
           <div id="market-outlook-content" class="outlook-content">
@@ -176,7 +185,7 @@
       <!-- Active Positions -->
       <div class="panel" id="positions-panel">
         <div class="panel-header">
-          <h3>🎯 Posisi Aktif</h3>
+          <h3>Posisi Aktif</h3>
           <button class="btn-sm" onclick="showPage('portfolio')">Lihat Semua →</button>
         </div>
         <div id="positions-content">
@@ -201,7 +210,9 @@
             placeholder="Masukkan kode saham (contoh: BBCA, TLKM, GOTO)" 
             onkeydown="if(event.key==='Enter') startAnalysis()" />
           <button class="btn-analyze" id="analyze-btn" onclick="startAnalysis()">
-            <span class="btn-icon">🤖</span>
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+            </span>
             <span>Analisis dengan AI</span>
           </button>
         </div>
@@ -219,7 +230,7 @@
       <!-- Loading State -->
       <div id="analyze-loading" class="analyze-loading hidden">
         <div class="ai-loading-animation">
-          <div class="ai-pulse">🤖</div>
+          <div class="ai-pulse">AI</div>
           <h3>AI Sedang Menganalisis...</h3>
           <div class="progress-steps" id="progress-steps">
             <div class="step" id="step-data">⏳ Mengambil data saham</div>
@@ -240,6 +251,10 @@
         </div>
 
         <!-- Score Overview -->
+        <div class="scores-header" id="scores-header">
+          <span class="scores-header-title">Ringkasan Skor</span>
+          <div class="score-mode-toggle" id="score-mode-toggle"></div>
+        </div>
         <div class="scores-overview" id="scores-overview">
           <!-- Diisi oleh JS -->
         </div>
@@ -253,7 +268,7 @@
         <div class="chart-section">
           <div class="panel chart-panel">
             <div class="panel-header">
-              <h3>📈 Candlestick Chart</h3>
+              <h3>Candlestick Chart</h3>
               <div class="chart-controls">
                 <button class="period-btn" onclick="changePeriod('1d', this)">1H</button>
                 <button class="period-btn" onclick="changePeriod('5d', this)">5H</button>
@@ -272,7 +287,7 @@
           <!-- Fundamental -->
           <div class="panel analysis-panel">
             <div class="panel-header">
-              <h3>📊 Fundamental</h3>
+              <h3>Fundamental</h3>
               <div class="score-badge" id="fund-score-badge">—</div>
             </div>
             <div id="fundamental-content"></div>
@@ -281,7 +296,7 @@
           <!-- Technical -->
           <div class="panel analysis-panel">
             <div class="panel-header">
-              <h3>📈 Teknikal</h3>
+              <h3>Teknikal</h3>
               <div class="score-badge" id="tech-score-badge">—</div>
             </div>
             <div id="technical-content"></div>
@@ -290,7 +305,7 @@
           <!-- News -->
           <div class="panel analysis-panel">
             <div class="panel-header">
-              <h3>📰 Berita & Sentimen</h3>
+              <h3>Berita & Sentimen</h3>
               <div class="score-badge" id="news-score-badge">—</div>
             </div>
             <div id="news-content"></div>
@@ -299,7 +314,7 @@
           <!-- Flow -->
           <div class="panel analysis-panel">
             <div class="panel-header">
-              <h3>💰 Aliran Dana</h3>
+              <h3>Aliran Dana</h3>
               <div class="score-badge" id="flow-score-badge">—</div>
             </div>
             <div id="flow-content"></div>
@@ -309,22 +324,31 @@
         <!-- AI Detailed Analysis -->
         <div class="panel ai-detail-panel" id="ai-detail-panel">
           <div class="panel-header">
-            <h3>🧠 Analisis Lengkap Gemini AI</h3>
+            <h3>Analisis Lengkap Gemini AI</h3>
             <div class="gemini-badge-sm">Powered by Gemini</div>
           </div>
           <div id="ai-analysis-content"></div>
         </div>
 
+        <!-- AI Trade Plan -->
+        <div class="panel ai-trade-plan" id="ai-trade-plan" style="display:none">
+          <div class="panel-header">
+            <h3>Rencana Trading AI</h3>
+            <div class="gemini-badge-sm">Harga ditentukan AI</div>
+          </div>
+          <div id="ai-trade-plan-content"></div>
+        </div>
+
         <!-- Order Action Bar -->
         <div class="action-bar" id="action-bar">
           <button class="btn-buy" id="btn-buy-action" onclick="prepareOrder('BUY')">
-            🟢 ORDER BUY
+            ORDER BUY
           </button>
           <button class="btn-sell" id="btn-sell-action" onclick="prepareOrder('SELL')">
-            🔴 ORDER SELL
+            ORDER SELL
           </button>
           <button class="btn-neutral" onclick="showPage('trade')">
-            ⚡ Buka Order Panel
+            Buka Order Panel
           </button>
         </div>
       </div>
@@ -343,7 +367,7 @@
       <div class="rt-live-panel" style="margin-bottom:16px">
         <div class="rt-panel-header">
           <div class="rt-panel-title">
-            <span style="width:7px;height:7px;border-radius:50%;background:#00e676;display:inline-block;animation:rtPulse 1.4s infinite"></span>
+            <span style="width:7px;height:7px;border-radius:50%;background:#0ECB81;display:inline-block;animation:rtPulse 1.4s infinite"></span>
             Live Portfolio — Update Otomatis
           </div>
           <span style="font-size:10px;color:var(--text-muted)" id="rt-port-timestamp">—</span>
@@ -357,7 +381,7 @@
       <div class="rt-live-panel" style="margin-bottom:16px">
         <div class="rt-panel-header">
           <div class="rt-panel-title">
-            <span style="width:7px;height:7px;border-radius:50%;background:#fbbf24;display:inline-block;animation:rtPulse 2s infinite"></span>
+            <span style="width:7px;height:7px;border-radius:50%;background:#F0B90B;display:inline-block;animation:rtPulse 2s infinite"></span>
             Live Dana Keluar / Masuk — Watchlist
           </div>
           <div style="display:flex;gap:6px;align-items:center">
@@ -386,17 +410,17 @@
     <!-- ══════════════════════════════════════════════ -->
     <section class="page" id="page-trade">
       <div class="page-header">
-        <h1>⚡ Fast Trade Center</h1>
+        <h1>Fast Trade Center</h1>
         <p class="page-desc">Order cepat dengan leverage simulator + sinyal otomatis ke Telegram/broker</p>
       </div>
 
       <!-- ── Mode Toggle ── -->
       <div class="ft-mode-bar">
         <button class="ft-mode-btn active" id="ft-mode-paper" onclick="setTradeMode('paper')">
-          📄 Paper Trading
+          Paper Trading
         </button>
         <button class="ft-mode-btn" id="ft-mode-signal" onclick="setTradeMode('signal')">
-          📱 Kirim Sinyal ke Broker
+          Kirim Sinyal ke Broker
         </button>
         <div class="ft-mode-info" id="ft-mode-info">
           Mode simulasi — order masuk ke portfolio virtual
@@ -416,7 +440,7 @@
                   placeholder="BBCA" maxlength="6"
                   oninput="this.value=this.value.toUpperCase()"
                   onkeydown="if(event.key==='Enter') ftFetchPrice()" />
-                <button class="ft-fetch-btn" onclick="ftFetchPrice()">⚡ Cek</button>
+                <button class="ft-fetch-btn" onclick="ftFetchPrice()">Cek</button>
               </div>
               <div class="ft-price-display" id="ft-price-display">
                 <span class="ft-price-big" id="ft-price-val">—</span>
@@ -438,22 +462,22 @@
 
           <!-- Leverage Selector -->
           <div class="panel ft-lev-panel">
-            <div class="ft-section-title">⚡ Leverage</div>
+            <div class="ft-section-title">Leverage</div>
             <div class="ft-lev-btns" id="ft-lev-btns">
               <button class="ft-lev-btn active" data-lev="1" onclick="ftSetLeverage(1, this)">
                 <span class="lev-val">1x</span>
                 <span class="lev-sub">Reguler</span>
               </button>
               <button class="ft-lev-btn" data-lev="2" onclick="ftSetLeverage(2, this)">
-                <span class="lev-val" style="color:#fbbf24">2x</span>
+                <span class="lev-val" style="color:#F0B90B">2x</span>
                 <span class="lev-sub">Margin</span>
               </button>
               <button class="ft-lev-btn" data-lev="3" onclick="ftSetLeverage(3, this)">
-                <span class="lev-val" style="color:#f97316">3x</span>
+                <span class="lev-val" style="color:#e58e26">3x</span>
                 <span class="lev-sub">Margin+</span>
               </button>
               <button class="ft-lev-btn" data-lev="5" onclick="ftSetLeverage(5, this)">
-                <span class="lev-val" style="color:#ef4444">5x</span>
+                <span class="lev-val" style="color:#F6465D">5x</span>
                 <span class="lev-sub">Full</span>
               </button>
             </div>
@@ -516,7 +540,7 @@
 
           <!-- Order Summary -->
           <div class="panel ft-summary" id="ft-summary">
-            <div class="ft-summary-title">📊 Ringkasan Order</div>
+            <div class="ft-summary-title">Ringkasan Order</div>
             <div class="ft-summary-body" id="ft-summary-body">
               <div style="color:var(--text-muted);font-size:12px">Isi form untuk melihat ringkasan</div>
             </div>
@@ -525,12 +549,12 @@
           <!-- BUY / SELL Buttons -->
           <div class="ft-action-btns">
             <button class="ft-btn-buy" id="ft-btn-buy" onclick="ftExecute('BUY')">
-              <span class="ft-btn-icon">🟢</span>
+              <span class="ft-btn-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5l7 14H5z"/></svg></span>
               <span class="ft-btn-text">BUY</span>
               <span class="ft-btn-sub" id="ft-buy-sub">—</span>
             </button>
             <button class="ft-btn-sell" id="ft-btn-sell" onclick="ftExecute('SELL')">
-              <span class="ft-btn-icon">🔴</span>
+              <span class="ft-btn-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 19l7-14H5z"/></svg></span>
               <span class="ft-btn-text">SELL</span>
               <span class="ft-btn-sub" id="ft-sell-sub">—</span>
             </button>
@@ -538,7 +562,7 @@
 
           <!-- Hotkey hint -->
           <div class="ft-hotkey-hint">
-            ⌨️ Shortcut: <kbd>B</kbd> = Buy &nbsp;|&nbsp; <kbd>S</kbd> = Sell &nbsp;|&nbsp; <kbd>R</kbd> = Refresh Harga
+            Shortcut: <kbd>B</kbd> = Buy &nbsp;|&nbsp; <kbd>S</kbd> = Sell &nbsp;|&nbsp; <kbd>R</kbd> = Refresh Harga
           </div>
         </div>
 
@@ -548,7 +572,7 @@
           <!-- Posisi Aktif untuk saham ini -->
           <div class="panel">
             <div class="panel-header">
-              <h3>🎯 Posisi Aktif</h3>
+              <h3>Posisi Aktif</h3>
               <button class="btn-refresh" onclick="ftLoadPosition()">↻</button>
             </div>
             <div id="ft-position-content">
@@ -558,7 +582,7 @@
 
           <!-- Risk Calculator -->
           <div class="panel">
-            <div class="panel-header"><h3>⚠️ Kalkulasi Risiko</h3></div>
+            <div class="panel-header"><h3>Kalkulasi Risiko</h3></div>
             <div id="ft-risk-content">
               <p class="empty-msg">Isi SL untuk kalkulasi risiko</p>
             </div>
@@ -567,7 +591,7 @@
           <!-- Order History -->
           <div class="panel">
             <div class="panel-header">
-              <h3>⏱ Order Terbaru</h3>
+              <h3>Order Terbaru</h3>
               <button class="btn-refresh" onclick="loadRecentOrders()">↻</button>
             </div>
             <div id="recent-orders-content">
@@ -579,7 +603,7 @@
           <div class="rt-live-panel">
             <div class="rt-panel-header">
               <div class="rt-panel-title">
-                <span style="width:7px;height:7px;border-radius:50%;background:#00e676;display:inline-block;animation:rtPulse 1.4s infinite"></span>
+                <span style="width:7px;height:7px;border-radius:50%;background:#0ECB81;display:inline-block;animation:rtPulse 1.4s infinite"></span>
                 Live Order Feed
               </div>
             </div>
@@ -591,7 +615,7 @@
           <!-- Telegram Alert Status -->
           <div class="panel ft-alert-status-panel">
             <div class="panel-header">
-              <h3>📱 Status Alert</h3>
+              <h3>Status Alert</h3>
               <button class="btn-sm" onclick="showPage('settings')">Atur →</button>
             </div>
             <div id="ft-alert-status">
@@ -613,7 +637,7 @@
       </div>
       <div class="panel">
         <div class="panel-header">
-          <h3>📋 Semua Transaksi</h3>
+          <h3>Semua Transaksi</h3>
           <div class="history-filters">
             <button class="filter-btn active" onclick="filterHistory('all', this)">Semua</button>
             <button class="filter-btn" onclick="filterHistory('BUY', this)">Buy</button>
@@ -640,7 +664,7 @@
         <div class="autotrade-left">
           <!-- Toggle Panel -->
           <div class="panel">
-            <div class="panel-header"><h3>⚡ Status Engine AI</h3></div>
+            <div class="panel-header"><h3>Status Engine AI</h3></div>
             <div class="status-panel-body" style="padding:18px">
               <div class="status-toggle-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
                 <span class="status-title-text" style="font-weight:700">Auto Trading Mode (AI)</span>
@@ -660,7 +684,7 @@
                 </div>
               </div>
               <button class="btn-execute" id="btn-trigger-scan" style="background:var(--brand-1);color:var(--bg-900);font-weight:700;margin-top:12px;" onclick="triggerAutoScan()">
-                🚀 Jalankan Scan Watchlist Sekarang
+                Jalankan Scan Watchlist Sekarang
               </button>
             </div>
           </div>
@@ -698,7 +722,7 @@
                 <div class="lot-info">Trailing stop dari titik harga tertinggi (ideal 5%)</div>
               </div>
               <button class="btn-execute" onclick="saveAutoTradeSettings()">
-                💾 Simpan Konfigurasi
+                Simpan Konfigurasi
               </button>
             </div>
           </div>
@@ -708,10 +732,10 @@
         <div class="autotrade-right">
           <div class="panel console-panel" style="height:100%;display:flex;flex-direction:column">
             <div class="panel-header">
-              <h3>📟 AI Console Log</h3>
+              <h3>AI Console Log</h3>
               <button class="btn-refresh" onclick="clearConsoleLogs()">Hapus Log</button>
             </div>
-            <div class="console-body" id="console-logs" style="background:#05070a;border-top:1px solid var(--panel-border);flex:1;padding:18px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;overflow-y:auto;height:450px;max-height:600px;">
+            <div class="console-body" id="console-logs" style="background:#0b0c0e;border-top:1px solid var(--panel-border);flex:1;padding:18px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;overflow-y:auto;height:450px;max-height:600px;">
               <div class="console-line system" style="color:var(--text-muted)">[SYSTEM] Console diinisialisasi. Menunggu log dari server...</div>
             </div>
           </div>
@@ -730,7 +754,7 @@
 
       <div class="settings-grid">
         <div class="panel settings-panel">
-          <div class="panel-header"><h3>🔑 API Configuration</h3></div>
+          <div class="panel-header"><h3>API Configuration</h3></div>
           <div class="settings-content">
             <div class="setting-item">
               <div class="setting-label">Gemini API Key</div>
@@ -750,7 +774,7 @@
         </div>
 
         <div class="panel settings-panel">
-          <div class="panel-header"><h3>💰 Modal & Risiko</h3></div>
+          <div class="panel-header"><h3>Modal & Risiko</h3></div>
           <div class="settings-content">
             <div class="setting-item">
               <div class="setting-label">Modal Awal Paper Trading</div>
@@ -759,13 +783,13 @@
             <div class="setting-item">
               <div class="setting-label">Reset Portfolio</div>
               <div class="setting-desc">Hapus semua posisi dan mulai dari awal</div>
-              <button class="btn-danger" onclick="resetPortfolioConfirm()">🔄 Reset Portfolio</button>
+              <button class="btn-danger" onclick="resetPortfolioConfirm()">Reset Portfolio</button>
             </div>
           </div>
         </div>
 
         <div class="panel settings-panel">
-          <div class="panel-header"><h3>🔧 Server Status</h3></div>
+          <div class="panel-header"><h3>Server Status</h3></div>
           <div id="server-status-content">
             <div class="setting-item">
               <div class="setting-label">API Server</div>
@@ -778,7 +802,7 @@
         <!-- Telegram Alert Panel -->
         <div class="panel settings-panel" style="grid-column: 1 / -1;">
           <div class="panel-header">
-            <h3>📱 Telegram Alert — Sinyal Trading ke Broker</h3>
+            <h3>Telegram Alert — Sinyal Trading ke Broker</h3>
             <div class="gemini-badge-sm">Fast Trade Integration</div>
           </div>
           <div id="alert-config-content">
@@ -873,7 +897,7 @@
 
     <!-- Execute Button -->
     <button id="sd-exec-btn" class="sd-exec-btn" onclick="executeSellDrawer()">
-      🔴 Konfirmasi Jual
+      Konfirmasi Jual
     </button>
     <button class="sd-cancel-btn" onclick="closeSellDrawer()">Batal</button>
   </div>

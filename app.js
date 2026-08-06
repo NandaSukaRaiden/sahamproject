@@ -7,8 +7,9 @@ const API = 'http://localhost:5000/api';
 let currentTicker   = '';
 let currentAnalysis = null;
 let currentChart    = null;
-let currentOrderTab = 'buy';
 let allHistory      = [];
+let currentAI       = null;        // data.ai_analysis.data terakhir
+let currentScoreMode = 'ai';       // 'ai' | 'raw' — skor yang ditampilkan
 
 // ─── SSE Realtime Stream ──────────────────────────────────────
 let _sseSource = null;
@@ -155,7 +156,7 @@ function _renderLivePortfolio(d, container) {
           </div>
           <div style="padding-right:8px">
             <button onclick="quickSell('${p.ticker}',${p.current_price},${p.lots})"
-              style="padding:3px 10px;background:#ff3d3d18;border:1px solid #ff3d3d60;color:#ff3d3d;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">
+              style="padding:3px 10px;background:#F6465D18;border:1px solid #F6465D60;color:#F6465D;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">
               Jual
             </button>
           </div>
@@ -179,7 +180,7 @@ function _updateFlowTicker(d) {
     const chgCell   = row.querySelector('.chg-cell');
     if (priceCell && d.price) {
       priceCell.textContent = `Rp ${formatNum(d.price, 0)}`;
-      _flashEl(priceCell, d.change_pct >= 0 ? '#00e676' : '#ff3d3d');
+      _flashEl(priceCell, d.change_pct >= 0 ? '#0ECB81' : '#F6465D');
     }
     if (chgCell && d.change_pct !== undefined) {
       chgCell.textContent  = `${d.change_pct >= 0 ? '+' : ''}${d.change_pct.toFixed(2)}%`;
@@ -208,7 +209,7 @@ function _updateFlowTicker(d) {
     <span class="rt-flow-time" style="color:var(--text-muted);font-size:10px">
       ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' })}
     </span>`;
-  _flashEl(existing, d.flow_direction === 'MASUK' ? '#00e676' : '#ff3d3d');
+  _flashEl(existing, d.flow_direction === 'MASUK' ? '#0ECB81' : '#F6465D');
 }
 
 /** Update harga posisi di tabel portfolio */
@@ -224,7 +225,7 @@ function _updatePositionPrices(prices) {
     if (cells[1]) { // current price column
       const old = cells[1].textContent;
       cells[1].textContent = `Rp ${formatNum(p.price, 0)}`;
-      if (old !== cells[1].textContent) _flashEl(cells[1], p.change_pct >= 0 ? '#00e676' : '#ff3d3d');
+      if (old !== cells[1].textContent) _flashEl(cells[1], p.change_pct >= 0 ? '#0ECB81' : '#F6465D');
     }
   });
 }
@@ -239,7 +240,7 @@ function _renderLiveTrades(trades) {
   }
   el.innerHTML = trades.map(t => `
     <div class="rt-trade-row ${t.type === 'BUY' ? 'rt-buy' : 'rt-sell'}">
-      <span class="rt-trade-type">${t.type === 'BUY' ? '🟢' : '🔴'} ${t.type}</span>
+      <span class="rt-trade-type">${t.type === 'BUY' ? '▲' : '▼'} ${t.type}</span>
       <strong>${t.ticker}</strong>
       <span>Rp ${formatNum(t.price, 0)}</span>
       <span>${t.lots} lot</span>
@@ -250,7 +251,7 @@ function _renderLiveTrades(trades) {
 
 /** Notifikasi instan saat trade terjadi */
 function _onTradeEvent(d) {
-  const icon  = d.action === 'BUY' ? '🟢' : '🔴';
+  const icon  = d.action === 'BUY' ? '▲' : '▼';
   const color = d.action === 'BUY' ? 'success' : 'info';
   showToast(`${icon} ${d.action} ${d.lots} lot ${d.ticker} @ Rp ${formatNum(d.price, 0)}`, color);
 
@@ -557,10 +558,10 @@ async function loadMarketOutlook() {
         <div style="font-size:12px;color:var(--text-secondary);margin-top:6px">${d.ihsg_outlook || ''}</div>
       </div>
       <div style="padding:8px 0">
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🏆 Top Picks AI</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Top Picks AI</div>
         <div class="outlook-picks">${(d.top_picks||[]).map(t => `<span class="pick-badge" onclick="analyzeStock('${t}')">${t}</span>`).join('')}</div>
       </div>
-      ${d.weekly_theme ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:10px;padding:10px;background:var(--bg-700);border-radius:8px;">💡 <strong>Tema Minggu Ini:</strong> ${d.weekly_theme}</div>` : ''}
+      ${d.weekly_theme ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:10px;padding:10px;background:var(--bg-700);border-radius:8px;"><strong>Tema Minggu Ini:</strong> ${d.weekly_theme}</div>` : ''}
       <div style="font-size:12px;color:var(--text-secondary);margin-top:10px">${d.summary || ''}</div>`;
   } catch(e) {
     el.innerHTML = `<p class="empty-msg">Error memuat outlook: ${e.message}</p>`;
@@ -588,7 +589,7 @@ async function analyzeStock(ticker) {
 
   // Animate progress steps
   const steps = ['step-data','step-fund','step-tech','step-news','step-flow','step-ai'];
-  steps.forEach(s => { const el = document.getElementById(s); el.className = 'step'; el.textContent = el.textContent.replace(/^[✅⚡]?\s?/,'⏳ '); });
+  steps.forEach(s => { const el = document.getElementById(s); el.className = 'step'; el.textContent = el.textContent.replace(/^[✓›•]?\s?/,'• '); });
 
   const stepDelay = (id, delay, label) => setTimeout(() => {
     steps.forEach(s => document.getElementById(s).className = 'step');
@@ -608,7 +609,7 @@ async function analyzeStock(ticker) {
   stepDelay('step-tech',  2400, 'Analisis teknikal (RSI, MACD, BB)...');
   stepDelay('step-news',  3600, 'Fetch berita & sentimen...');
   stepDelay('step-flow',  5000, 'Analisis aliran dana...');
-  stepDelay('step-ai',    6500, '🧠 Gemini AI memproses semua data...');
+  stepDelay('step-ai',    6500, 'Gemini AI memproses semua data...');
 
   try {
     const res  = await fetch(`${API}/analyze/${ticker}?ai=true`);
@@ -650,6 +651,10 @@ function renderAnalysis(data) {
   const flow   = data.flow || {};
   const ai     = data.ai_analysis?.data || null;
   const scores = data.scores || {};
+  const as     = ai?.analysis_summary || {};
+
+  currentAI        = ai;
+  currentScoreMode = (ai ? 'ai' : 'raw');
 
   // ── Stock Header ──
   const chgColor = (info.change_pct||0) >= 0 ? 'var(--green)' : 'var(--red)';
@@ -677,22 +682,8 @@ function renderAnalysis(data) {
     </div>`;
 
   // ── Scores Overview ──
-  const overallScore = data.overall_score || 50;
-  const scoreCards = [
-    { label: 'FUNDAMENTAL', score: scores.fundamental, signal: fund.signal },
-    { label: 'TEKNIKAL',    score: scores.technical,   signal: tech.signal },
-    { label: 'SENTIMEN',    score: scores.sentiment,   signal: news.sentiment_summary?.signal },
-    { label: 'FLOW DANA',   score: scores.flow,        signal: flow.signal },
-    { label: 'OVERALL',     score: overallScore,       signal: overallSignal(overallScore), big: true },
-  ];
-  document.getElementById('scores-overview').innerHTML = scoreCards.map(s => `
-    <div class="score-card${s.big ? ' glow-green' : ''}">
-      <div class="score-label">${s.label}</div>
-      <div class="score-circle" style="border-color:${scoreColor(s.score||50)};background:${scoreColor(s.score||50)}18">
-        <span style="color:${scoreColor(s.score||50)}">${Math.round(s.score||50)}</span>
-      </div>
-      <div class="score-signal" style="color:${scoreColor(s.score||50)}">${s.signal || 'N/A'}</div>
-    </div>`).join('');
+  renderScoreCards(data);
+  refreshPanelBadges(data);
 
   // ── AI Recommendation Banner ──
   if (ai) {
@@ -705,7 +696,7 @@ function renderAnalysis(data) {
     document.getElementById('ai-recommendation').innerHTML = `
       <div class="ai-rec-header">
         <div>
-          <div class="ai-rec-label">🤖 Rekomendasi Gemini AI</div>
+          <div class="ai-rec-label">Rekomendasi Gemini AI</div>
           <div class="ai-rec-signal" style="color:${bdColor}">${rec}</div>
         </div>
         <div style="text-align:right">
@@ -747,6 +738,7 @@ function renderAnalysis(data) {
   document.getElementById('fund-score-badge').textContent = `${Math.round(fund.composite_score||50)}/100`;
   document.getElementById('fund-score-badge').style.color = scoreColor(fund.composite_score||50);
   document.getElementById('fundamental-content').innerHTML = `
+    ${as.fundamental_verdict ? `<div class="ai-verdict"><strong>AI</strong> · ${as.fundamental_verdict}</div>` : ''}
     <div class="metric-grid">
       ${metricRow('PER', `${(info.pe_ratio||0).toFixed(1)}x`, fm.pe)}
       ${metricRow('PBV', `${(info.pb_ratio||0).toFixed(1)}x`, fm.pbv)}
@@ -761,7 +753,7 @@ function renderAnalysis(data) {
     </div>
     ${fund.analyst?.analyst_count > 0 ? `
     <div style="padding:10px 18px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--panel-border)">
-      🎯 Target Analis (${fund.analyst.analyst_count} analis): 
+      Target Analis (${fund.analyst.analyst_count} analis): 
       <strong style="color:var(--brand-1)">Rp ${formatNum(fund.analyst.target_mean,0)}</strong> 
       (<span style="color:var(--green)">H: ${formatNum(fund.analyst.target_high,0)}</span> / 
       <span style="color:var(--red)">L: ${formatNum(fund.analyst.target_low,0)}</span>) — 
@@ -773,6 +765,7 @@ function renderAnalysis(data) {
   document.getElementById('tech-score-badge').textContent = `${Math.round(tech.composite_score||50)}/100`;
   document.getElementById('tech-score-badge').style.color = scoreColor(tech.composite_score||50);
   document.getElementById('technical-content').innerHTML = `
+    ${as.technical_verdict ? `<div class="ai-verdict"><strong>AI</strong> · ${as.technical_verdict}</div>` : ''}
     <div>
       ${indicatorBar('RSI', inds.rsi?.score||50, `${(inds.rsi?.value||50).toFixed(1) || ''}`, inds.rsi?.signal || '')}
       ${indicatorBar('MACD', inds.macd?.score||50, '', inds.macd?.signal || '')}
@@ -801,7 +794,9 @@ function renderAnalysis(data) {
   const ns = news.sentiment_summary || {};
   document.getElementById('news-score-badge').textContent = `${Math.round(ns.score||50)}/100`;
   document.getElementById('news-score-badge').style.color = scoreColor(ns.score||50);
-  document.getElementById('news-content').innerHTML = renderNewsHTML(news);
+  document.getElementById('news-content').innerHTML = `
+    ${as.news_verdict ? `<div class="ai-verdict"><strong>AI</strong> · ${as.news_verdict}</div>` : ''}
+    ${renderNewsHTML(news)}`;
 
   // ── Flow Panel ──
   const fi = flow.indicators || {};
@@ -816,7 +811,7 @@ function renderAnalysis(data) {
     whaleVolumeHtml = `
       <div style="padding:12px 18px;border-top:1px solid var(--panel-border);background:#1a0a0a">
         <div style="font-size:11px;font-weight:700;color:${alertColor};text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">
-          🐋 Sinyal Volume Whale — ${fw.alert_level}
+          Sinyal Volume Whale — ${fw.alert_level}
         </div>
         ${(fw.signals||[]).map(s => `
           <div style="display:flex;gap:8px;margin-bottom:8px;font-size:12px;padding:8px;background:var(--bg-700);border-radius:6px;border-left:3px solid ${s.severity==='CRITICAL'?'var(--red)':s.severity==='HIGH'?'var(--yellow)':'var(--brand-1)'}">
@@ -830,6 +825,7 @@ function renderAnalysis(data) {
   }
 
   document.getElementById('flow-content').innerHTML = `
+    ${as.flow_verdict ? `<div class="ai-verdict"><strong>AI</strong> · ${as.flow_verdict}</div>` : ''}
     <div style="padding:14px 18px;border-bottom:1px solid var(--panel-border)">
       <div style="font-size:18px;font-weight:800;color:${scoreColor(flow.composite_score||50)}">${flow.signal||'N/A'}</div>
       <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">${flow.description||''}</div>
@@ -864,7 +860,7 @@ function renderAnalysis(data) {
       <div class="ai-content-grid">
         <!-- Price Targets -->
         <div class="ai-section">
-          <h4>🎯 Target Harga (3 Bulan)</h4>
+          <h4>Target Harga (3 Bulan)</h4>
           <div class="target-grid">
             <div class="target-card bull">
               <div class="target-label">BULL</div>
@@ -886,7 +882,7 @@ function renderAnalysis(data) {
 
         <!-- Entry Strategy -->
         <div class="ai-section">
-          <h4>📋 Strategi Entry</h4>
+          <h4>Strategi Entry</h4>
           <div class="entry-table">
             <div class="entry-row"><span class="entry-label">Entry Ideal</span><span class="entry-value entry">Rp ${formatNum(es.recommended_entry,0)}</span></div>
             <div class="entry-row"><span class="entry-label">Zona Beli</span><span class="entry-value entry">Rp ${formatNum(es.entry_zone_low,0)} — ${formatNum(es.entry_zone_high,0)}</span></div>
@@ -901,9 +897,9 @@ function renderAnalysis(data) {
 
         <!-- Katalis & Risiko -->
         <div class="ai-section">
-          <h4>🚀 Katalis Utama</h4>
+          <h4>Katalis Utama</h4>
           <ul class="catalyst-list">${(as.key_catalysts||[]).map(c => `<li>${c}</li>`).join('')}</ul>
-          <h4 style="margin-top:12px">⚠️ Risiko Utama</h4>
+          <h4 style="margin-top:12px">Risiko Utama</h4>
           <ul class="risk-list">${(as.key_risks||[]).map(r => `<li>${r}</li>`).join('')}</ul>
         </div>
 
@@ -928,7 +924,7 @@ function renderAnalysis(data) {
 
       <!-- Narrative -->
       <div class="ai-narrative">
-        <h4 style="font-size:13px;color:var(--text-primary);margin-bottom:12px">📝 Analisis Lengkap AI</h4>
+        <h4 style="font-size:13px;color:var(--text-primary);margin-bottom:12px">Analisis Lengkap AI</h4>
         ${(as.overall_narrative||'Analisis tidak tersedia').split('\n').filter(p=>p.trim()).map(p => `<p>${p}</p>`).join('')}
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px;font-size:12px">
           <div><strong style="color:var(--text-secondary)">Fundamental:</strong> ${as.fundamental_verdict||''}</div>
@@ -939,26 +935,180 @@ function renderAnalysis(data) {
       </div>`;
   } else {
     document.getElementById('ai-detail-panel').innerHTML = `
-      <div class="panel-header"><h3>🧠 Analisis Lengkap Gemini AI</h3></div>
+      <div class="panel-header"><h3>Analisis Lengkap Gemini AI</h3></div>
       <div style="padding:32px;text-align:center;color:var(--text-muted)">
-        <div style="font-size:40px;margin-bottom:12px">🔑</div>
+        <div style="font-size:34px;margin-bottom:12px;color:var(--text-secondary)">AI</div>
         <div>Set GEMINI_API_KEY di file <code>.env</code> untuk mendapatkan analisis AI penuh</div>
       </div>`;
   }
 
-  // Set action bar
-  const price = info.current_price || 0;
-  document.getElementById('btn-buy-action').onclick = () => {
-    document.getElementById('order-ticker').value = currentTicker;
-    document.getElementById('order-price').value  = price;
-    updateOrderSummary(); showPage('trade');
+  // ── Rencana Trading AI (harga entry/SL/TP dari AI) ──
+  renderAITradePlan(data);
+}
+
+// ─── AI-Adjusted Scores ────────────────────────────────────────
+function renderScoreCards(data) {
+  const fund   = data.fundamental || {};
+  const tech   = data.technical || {};
+  const news   = data.news || {};
+  const flow   = data.flow || {};
+  const aiAvail = !!(data.ai_analysis?.success && data.ai_analysis?.data);
+  const adj    = data.adjusted || {};
+  const raw    = data.scores || {};
+  const useAI  = currentScoreMode === 'ai' && aiAvail;
+  const s      = useAI ? (adj.scores || {}) : raw;
+  const overallScore = useAI ? (adj.overall_score ?? data.overall_score) : data.overall_score;
+
+  const toggleEl = document.getElementById('score-mode-toggle');
+  if (toggleEl) {
+    toggleEl.innerHTML = `
+      <button class="${currentScoreMode==='ai'?'active':''}" ${aiAvail?'':'disabled'} onclick="setScoreMode('ai')">AI</button>
+      <button class="${currentScoreMode==='raw'?'active':''}" onclick="setScoreMode('raw')">RAW</button>`;
+  }
+
+  const delta = (key) => {
+    if (!useAI) return '';
+    const r = raw[key], a = adj.scores?.[key];
+    if (r == null || a == null || r === a) return '';
+    const diff = a - r;
+    return `<div class="score-delta ${diff>=0?'up':'down'}">${diff>=0?'▲':'▼'} ${Math.abs(diff).toFixed(0)} vs RAW</div>`;
   };
-  document.getElementById('btn-sell-action').onclick = () => {
-    switchOrderTab('sell');
-    document.getElementById('order-ticker').value = currentTicker;
-    document.getElementById('order-price').value  = price;
-    updateOrderSummary(); showPage('trade');
-  };
+
+  const cards = [
+    { key:'fundamental', label: 'FUNDAMENTAL', score: s.fundamental, signal: fund.signal },
+    { key:'technical',   label: 'TEKNIKAL',    score: s.technical,   signal: tech.signal },
+    { key:'sentiment',   label: 'SENTIMEN',    score: s.sentiment,   signal: news.sentiment_summary?.signal },
+    { key:'flow',        label: 'FLOW DANA',   score: s.flow,        signal: flow.signal },
+    { key:'overall',     label: 'OVERALL',     score: overallScore,  signal: overallSignal(overallScore||50), big: true },
+  ];
+
+  document.getElementById('scores-overview').innerHTML = cards.map(c => `
+    <div class="score-card${c.big ? ' glow-green' : ''}">
+      <div class="score-label">${c.label}</div>
+      <div class="score-circle" style="border-color:${scoreColor(c.score||50)};background:${scoreColor(c.score||50)}18">
+        <span style="color:${scoreColor(c.score||50)}">${Math.round(c.score||50)}</span>
+      </div>
+      ${delta(c.key)}
+      <div class="score-signal" style="color:${scoreColor(c.score||50)}">${c.signal || 'N/A'}</div>
+    </div>`).join('');
+}
+
+function refreshPanelBadges(data) {
+  const aiAvail = !!(data.ai_analysis?.success && data.ai_analysis?.data);
+  const useAI   = currentScoreMode === 'ai' && aiAvail;
+  const adj     = data.adjusted || {};
+  const raw     = data.scores || {};
+  const s       = useAI ? (adj.scores || {}) : raw;
+
+  const badges = [
+    ['fund-score-badge', s.fundamental],
+    ['tech-score-badge', s.technical],
+    ['news-score-badge', s.sentiment],
+    ['flow-score-badge', s.flow],
+  ];
+  badges.forEach(([id, score]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = `${Math.round(score||50)}/100`;
+    el.style.color = scoreColor(score||50);
+  });
+}
+
+function setScoreMode(mode) {
+  if (!currentAnalysis) return;
+  const aiAvail = !!(currentAnalysis.ai_analysis?.success && currentAnalysis.ai_analysis?.data);
+  if (mode === 'raw' || (mode === 'ai' && aiAvail)) {
+    currentScoreMode = mode;
+  }
+  renderScoreCards(currentAnalysis);
+  refreshPanelBadges(currentAnalysis);
+}
+
+// ─── Rencana Trading AI ────────────────────────────────────────
+function renderAITradePlan(data) {
+  const panel  = document.getElementById('ai-trade-plan');
+  const content = document.getElementById('ai-trade-plan-content');
+  if (!panel || !content) return;
+  const ai  = data.ai_analysis?.data;
+  const es  = ai?.entry_strategy;
+  if (!ai || !es || !es.recommended_entry) { panel.style.display = 'none'; return; }
+
+  const entry  = es.recommended_entry || 0;
+  const slPct  = es.stop_loss  ? Math.abs((entry - es.stop_loss) / entry * 100).toFixed(1) : '';
+  panel.style.display = '';
+  content.innerHTML = `
+    <div class="ai-plan-grid">
+      <div class="ai-plan-cell">
+        <div class="ai-plan-label">Entry Ideal</div>
+        <div class="ai-plan-price entry">Rp ${formatNum(es.recommended_entry,0)}</div>
+        <div class="ai-plan-sub">Zona: Rp ${formatNum(es.entry_zone_low,0)} — ${formatNum(es.entry_zone_high,0)}</div>
+      </div>
+      <div class="ai-plan-cell">
+        <div class="ai-plan-label">Stop Loss</div>
+        <div class="ai-plan-price sl">Rp ${formatNum(es.stop_loss,0)}</div>
+        <div class="ai-plan-sub">${slPct ? '(−' + slPct + '%)' : 'Maks kerugian'}</div>
+      </div>
+      <div class="ai-plan-cell">
+        <div class="ai-plan-label">Take Profit 1</div>
+        <div class="ai-plan-price tp">Rp ${formatNum(es.take_profit_1,0)}</div>
+        <div class="ai-plan-sub">TP2: Rp ${formatNum(es.take_profit_2,0)} · TP3: Rp ${formatNum(es.take_profit_3,0)}</div>
+      </div>
+      <div class="ai-plan-cell">
+        <div class="ai-plan-label">Saran Lot</div>
+        <div class="ai-plan-price lot">${es.lot_suggestion || '—'}</div>
+        <div class="ai-plan-sub">R/R 1 : ${(es.risk_reward_ratio||0).toFixed(1)} · ${ai.time_horizon || ''}</div>
+      </div>
+    </div>
+    <div class="ai-plan-actions">
+      <button class="ai-plan-btn buy" onclick="applyAITradePlan('BUY')">BUY di Entry AI</button>
+      <button class="ai-plan-btn sell" onclick="applyAITradePlan('SELL')">SELL di Target AI</button>
+    </div>`;
+}
+
+async function applyAITradePlan(action) {
+  const ai = currentAI;
+  if (!ai) { showToast('Analisis AI belum tersedia — jalankan analisis dulu', 'error'); return; }
+  const es = ai.entry_strategy || {};
+  const info = currentAnalysis?.stock_info?.data || {};
+  const ticker = currentTicker || info.company_name || '';
+  const current = info.current_price || 0;
+
+  const priceInput = document.getElementById('ft-price-input');
+  if (!priceInput) { showPage('trade'); setTimeout(() => applyAITradePlan(action), 250); return; }
+
+  document.getElementById('ft-ticker').value = ticker;
+  const slEl  = document.getElementById('ft-sl');
+  const tpEl  = document.getElementById('ft-tp');
+  const lotEl = document.getElementById('ft-lots');
+
+  if (action === 'BUY') {
+    const entry = es.recommended_entry || es.entry_zone_low || current;
+    priceInput.value = entry;
+    ftCurrentPrice   = entry;
+    if (slEl)  slEl.value = es.stop_loss || Math.round(entry * 0.95);
+    if (tpEl)  tpEl.value = es.take_profit_1 || Math.round(entry * 1.10);
+    const m = (es.lot_suggestion || '').match(/(\d+)/);
+    if (lotEl && m) lotEl.value = parseInt(m[1], 10) || 1;
+    showToast(`Form BUY diisi AI: entry Rp ${formatNum(entry,0)} · SL Rp ${formatNum(es.stop_loss||0,0)} · TP Rp ${formatNum(es.take_profit_1||0,0)}`, 'success');
+  } else {
+    const sellPrice = es.take_profit_1 || current;
+    priceInput.value = sellPrice;
+    ftCurrentPrice   = sellPrice;
+    if (slEl) slEl.value = '';
+    if (tpEl) tpEl.value = '';
+    try {
+      const res  = await fetch(`${API}/portfolio`);
+      const data = await res.json();
+      const pos  = (data.data?.positions || []).find(p => p.ticker === ticker);
+      if (lotEl && pos) lotEl.value = pos.lots;
+    } catch(_) {}
+    showToast(`Form SELL diisi AI: exit Rp ${formatNum(sellPrice,0)} (target AI)`, 'success');
+  }
+
+  document.querySelectorAll('.ft-lev-btn').forEach(b => b.classList.toggle('active', b.dataset.lev === '1'));
+  ftLeverage = 1;
+  ftUpdateCalc();
+  showPage('trade');
 }
 
 // ─── Chart ────────────────────────────────────────────────────
@@ -1040,9 +1190,9 @@ async function loadChart(ticker, period) {
     });
 
     const candleSeries = chart.addCandlestickSeries({
-      upColor:        '#00e676', downColor:       '#ff3d3d',
-      borderUpColor:  '#00e676', borderDownColor: '#ff3d3d',
-      wickUpColor:    '#00e676', wickDownColor:   '#ff3d3d',
+      upColor:        '#0ECB81', downColor:       '#F6465D',
+      borderUpColor:  '#0ECB81', borderDownColor: '#F6465D',
+      wickUpColor:    '#0ECB81', wickDownColor:   '#F6465D',
     });
 
     const volSeries = chart.addHistogramSeries({
@@ -1054,8 +1204,8 @@ async function loadChart(ticker, period) {
     // MA hanya relevan untuk daily candles (bukan intraday pendek)
     let ma20Series = null, ma50Series = null;
     if (!cfg.intraday || period === '1mo') {
-      ma20Series = chart.addLineSeries({ color: '#00d4ff88', lineWidth: 1, title: 'MA20', priceScaleId: 'right' });
-      ma50Series = chart.addLineSeries({ color: '#7c3aed88', lineWidth: 1, title: 'MA50', priceScaleId: 'right' });
+      ma20Series = chart.addLineSeries({ color: '#ffffff88', lineWidth: 1, title: 'MA20', priceScaleId: 'right' });
+      ma50Series = chart.addLineSeries({ color: '#9a9aa488', lineWidth: 1, title: 'MA50', priceScaleId: 'right' });
     }
 
     const candles = [], vols = [];
@@ -1085,7 +1235,7 @@ async function loadChart(ticker, period) {
       vols.push({
         time:  t,
         value: d.volume,
-        color: c >= o ? '#00e67640' : '#ff3d3d40',
+        color: c >= o ? '#0ECB8140' : '#F6465D40',
       });
     });
 
@@ -1140,7 +1290,7 @@ async function loadChart(ticker, period) {
     // Update chart title dengan info timeframe
     const chartTitle = document.querySelector('.chart-panel .panel-header h3');
     if (chartTitle) {
-      chartTitle.textContent = `📈 Chart ${ticker} — ${cfg.label} (${cfg.interval.toUpperCase()})`;
+      chartTitle.textContent = `Chart ${ticker} — ${cfg.label} (${cfg.interval.toUpperCase()})`;
     }
 
   } catch(e) {
@@ -1187,10 +1337,10 @@ function renderNewsHTML(news) {
   if (ws.detected) {
     const wDir    = ws.overall_direction;
     const wLevel  = ws.alert_level;
-    const wColor  = wDir === 'MASUK' ? '#00e676' : wDir === 'KELUAR' ? '#ff3d3d' : '#fbbf24';
-    const wBg     = wDir === 'MASUK' ? '#00e67612' : wDir === 'KELUAR' ? '#ff3d3d12' : '#fbbf2412';
-    const wBorder = wDir === 'MASUK' ? '#00e67640' : wDir === 'KELUAR' ? '#ff3d3d40' : '#fbbf2440';
-    const wIcon   = wDir === 'MASUK' ? '🐋🟢' : wDir === 'KELUAR' ? '🐳🔴' : '🐋🟡';
+    const wColor  = wDir === 'MASUK' ? '#0ECB81' : wDir === 'KELUAR' ? '#F6465D' : '#F0B90B';
+    const wBg     = wDir === 'MASUK' ? '#0ECB8112' : wDir === 'KELUAR' ? '#F6465D12' : '#F0B90B12';
+    const wBorder = wDir === 'MASUK' ? '#0ECB8140' : wDir === 'KELUAR' ? '#F6465D40' : '#F0B90B40';
+    const wIcon   = wDir === 'MASUK' ? '▲' : wDir === 'KELUAR' ? '▼' : '◆';
     whaleBanner = `
       <div style="margin:0 0 12px 0;padding:14px 18px;background:${wBg};border:1px solid ${wBorder};border-radius:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -1204,7 +1354,7 @@ function renderNewsHTML(news) {
           const age = articleAge(a.published);
           return `
           <div style="display:flex;gap:8px;padding:8px 0;border-top:1px solid ${wBorder};font-size:12px;align-items:flex-start">
-            <span style="font-size:16px;flex-shrink:0">${a.icon||'🐋'}</span>
+            <span style="font-size:16px;flex-shrink:0">${a.icon||'●'}</span>
             <div style="flex:1">
               <div style="font-weight:600;color:${a.direction==='MASUK'?'var(--green)':a.direction==='KELUAR'?'var(--red)':'var(--yellow)'}">${a.label||a.direction}</div>
               <div style="color:var(--text-secondary);margin-top:2px">${(a.title||'').substring(0,90)}...</div>
@@ -1228,9 +1378,9 @@ function renderNewsHTML(news) {
     ${whaleBanner}
     <div style="padding:10px 18px;border-bottom:1px solid var(--panel-border);display:flex;justify-content:space-between;align-items:center">
       <div style="display:flex;gap:12px;font-size:12px">
-        <span style="color:var(--green)">✅ ${ns.positive_articles||0} Positif</span>
-        <span style="color:var(--red)">❌ ${ns.negative_articles||0} Negatif</span>
-        <span style="color:var(--text-muted)">⚪ ${ns.neutral_articles||0} Netral</span>
+        <span style="color:var(--green)">▲ ${ns.positive_articles||0} Positif</span>
+        <span style="color:var(--red)">▼ ${ns.negative_articles||0} Negatif</span>
+        <span style="color:var(--text-muted)">● ${ns.neutral_articles||0} Netral</span>
       </div>
       ${fetchLabel ? `<span style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">↻ ${fetchLabel}</span>` : ''}
     </div>
@@ -1246,7 +1396,7 @@ function renderNewsHTML(news) {
           ${a.whale?.is_whale ? `
             <div style="font-size:11px;font-weight:700;color:${
               a.whale.direction==='MASUK'?'var(--green)':a.whale.direction==='KELUAR'?'var(--red)':'var(--yellow)'
-            };margin-bottom:4px">${a.whale.icon||'🐋'} ${a.whale.alert_message||''}</div>` : ''}
+            };margin-bottom:4px">${a.whale.icon||'●'} ${a.whale.alert_message||''}</div>` : ''}
           <div class="news-title">${a.title}</div>
           <div class="news-meta">
             <span style="display:flex;gap:6px;align-items:center">
@@ -1313,8 +1463,8 @@ async function changePeriod(period, btn) {
   if (chartControls && !document.getElementById('rt-live-badge')) {
     const badge = document.createElement('div');
     badge.id = 'rt-live-badge';
-    badge.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#00e67618;border:1px solid #00e67640;border-radius:20px;font-size:11px;font-weight:700;color:#00e676;margin-left:8px;cursor:default';
-    badge.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:#00e676;display:inline-block;animation:rtPulse 1.4s infinite"></span>LIVE`;
+    badge.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#0ECB8118;border:1px solid #0ECB8140;border-radius:20px;font-size:11px;font-weight:700;color:#0ECB81;margin-left:8px;cursor:default';
+    badge.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:#0ECB81;display:inline-block;animation:rtPulse 1.4s infinite"></span>LIVE`;
     chartControls.appendChild(badge);
   }
 }
@@ -1369,8 +1519,8 @@ function startRealtimeChart(ticker) {
   if (chartControls && !document.getElementById('rt-live-badge')) {
     const badge = document.createElement('div');
     badge.id = 'rt-live-badge';
-    badge.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#00e67618;border:1px solid #00e67640;border-radius:20px;font-size:11px;font-weight:700;color:#00e676;margin-left:8px;cursor:default';
-    badge.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:#00e676;display:inline-block;animation:rtPulse 1.4s infinite"></span>LIVE`;
+    badge.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:#0ECB8118;border:1px solid #0ECB8140;border-radius:20px;font-size:11px;font-weight:700;color:#0ECB81;margin-left:8px;cursor:default';
+    badge.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:#0ECB81;display:inline-block;animation:rtPulse 1.4s infinite"></span>LIVE`;
     chartControls.appendChild(badge);
   }
 
@@ -1379,8 +1529,8 @@ function startRealtimeChart(ticker) {
   if (newsPanelHeader && !document.getElementById('rt-news-badge')) {
     const newsBadge = document.createElement('span');
     newsBadge.id = 'rt-news-badge';
-    newsBadge.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#448aff18;border:1px solid #448aff40;border-radius:20px;font-size:10px;font-weight:700;color:#448aff;margin-left:8px';
-    newsBadge.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:#448aff;display:inline-block;animation:rtPulse 2s infinite"></span>AUTO`;
+    newsBadge.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#9ca3af18;border:1px solid #9ca3af40;border-radius:20px;font-size:10px;font-weight:700;color:#9ca3af;margin-left:8px';
+    newsBadge.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:#9ca3af;display:inline-block;animation:rtPulse 2s infinite"></span>AUTO`;
     newsPanelHeader.appendChild(newsBadge);
   }
 
@@ -1420,7 +1570,7 @@ async function updateRealtimeBar(ticker) {
             _realtimeVolSeries.update({
               time:  lastBar.time,
               value: lastBar.volume,
-              color: lastBar.close >= lastBar.open ? '#00e67640' : '#ff3d3d40',
+              color: lastBar.close >= lastBar.open ? '#0ECB8140' : '#F6465D40',
             });
           }
         } catch (seriesErr) {
@@ -1433,9 +1583,9 @@ async function updateRealtimeBar(ticker) {
         // Cari candlestick series di chart yang ada
         try {
           _realtimeSeries = currentChart.addCandlestickSeries({
-            upColor:       '#00e676', downColor:       '#ff3d3d',
-            borderUpColor: '#00e676', borderDownColor: '#ff3d3d',
-            wickUpColor:   '#00e676', wickDownColor:   '#ff3d3d',
+            upColor:       '#0ECB81', downColor:       '#F6465D',
+            borderUpColor: '#0ECB81', borderDownColor: '#F6465D',
+            wickUpColor:   '#0ECB81', wickDownColor:   '#F6465D',
           });
           _realtimeVolSeries = currentChart.addHistogramSeries({
             priceFormat: { type: 'volume' },
@@ -1447,7 +1597,7 @@ async function updateRealtimeBar(ticker) {
           })));
           _realtimeVolSeries.setData(bars.map(b => ({
             time: b.time, value: b.volume,
-            color: b.close >= b.open ? '#00e67640' : '#ff3d3d40',
+            color: b.close >= b.open ? '#0ECB8140' : '#F6465D40',
           })));
           currentChart.timeScale().fitContent();
           _realtimeTicker = ticker;
@@ -1525,7 +1675,7 @@ async function loadPortfolioFull() {
 
       <!-- Risk Metrics -->
       <div class="panel" style="margin-bottom:16px">
-        <div class="panel-header"><h3>⚠️ Risk Metrics</h3></div>
+        <div class="panel-header"><h3>Risk Metrics</h3></div>
         <div style="padding:14px 18px;display:flex;gap:20px;flex-wrap:wrap;font-size:13px">
           <div><span style="color:var(--text-muted)">Risk Level:</span> <strong style="color:${riskColor(risk.risk_level)}">${risk.risk_level||'N/A'}</strong></div>
           <div><span style="color:var(--text-muted)">Max Pos:</span> <strong>${risk.max_position_pct||0}%</strong></div>
@@ -1538,7 +1688,7 @@ async function loadPortfolioFull() {
       <!-- Positions Table -->
       <div class="panel">
         <div class="panel-header">
-          <h3>🎯 Posisi Aktif (${d.positions.length})</h3>
+          <h3>Posisi Aktif (${d.positions.length})</h3>
           <button class="btn-sm" onclick="loadPortfolioFull()">↻ Refresh</button>
         </div>
         ${d.positions.length ? `
@@ -1558,8 +1708,8 @@ async function loadPortfolioFull() {
               <div style="font-size:11px">${p.pnl_pct>=0?'+':''}${p.pnl_pct.toFixed(2)}%</div>
             </div>
             <div class="pos-card-actions">
-              <button class="pos-btn-analyze" onclick="analyzeStock('${p.ticker}')">📊 Analisis</button>
-              <button class="pos-btn-sell" onclick="openSellDrawer('${p.ticker}',${p.current_price},${p.lots},${p.avg_price})">🔴 Jual</button>
+              <button class="pos-btn-analyze" onclick="analyzeStock('${p.ticker}')">Analisis</button>
+              <button class="pos-btn-sell" onclick="openSellDrawer('${p.ticker}',${p.current_price},${p.lots},${p.avg_price})">Jual</button>
             </div>
           </div>`).join('')}
         </div>` : '<p class="empty-msg">Belum ada posisi aktif</p>'}
@@ -1578,11 +1728,6 @@ let ftCash      = 0;
 let ftCurrentPrice = 0;
 
 // ── Inisialisasi halaman trade ────────────────────────────────
-function initFastTrade() {
-  ftLoadAlertStatus();
-  loadRecentOrders();
-}
-
 function ftHotkey(e) {
   // Hanya aktif saat halaman trade terbuka dan fokus bukan di input
   if (!document.getElementById('page-trade')?.classList.contains('active')) return;
@@ -1599,8 +1744,8 @@ function setTradeMode(mode) {
   document.getElementById('ft-mode-signal').classList.toggle('active', mode === 'signal');
   const info = document.getElementById('ft-mode-info');
   if (info) info.textContent = mode === 'paper'
-    ? '📄 Mode simulasi — order masuk ke portfolio virtual'
-    : '📱 Mode sinyal — hanya kirim notifikasi ke Telegram, tidak eksekusi';
+    ? 'Mode simulasi — order masuk ke portfolio virtual'
+    : 'Mode sinyal — hanya kirim notifikasi ke Telegram, tidak eksekusi';
   ftUpdateCalc();
 }
 
@@ -1720,7 +1865,7 @@ async function ftUpdateCalc() {
     const levDetail = document.getElementById('ft-lev-detail');
     if (levDetail) {
       const liqLine = s.leverage > 1
-        ? `<div class="ft-lev-row"><span class="ft-lev-label">⚠️ Liquidation</span><span class="ft-lev-value" style="color:var(--red)">Rp ${formatNum(s.liquidation_price,0)}</span></div>`
+        ? `<div class="ft-lev-row"><span class="ft-lev-label">Liquidation</span><span class="ft-lev-value" style="color:var(--red)">Rp ${formatNum(s.liquidation_price,0)}</span></div>`
         : '';
       const intLine = s.leverage > 1
         ? `<div class="ft-lev-row"><span class="ft-lev-label">Bunga/Hari</span><span class="ft-lev-value" style="color:var(--yellow)">Rp ${formatNum(s.interest_daily_rp,0)}</span></div>`
@@ -1746,7 +1891,7 @@ async function ftUpdateCalc() {
         <div class="ft-sum-row ft-sum-total">
           <span class="ft-sum-label">Modal Diperlukan</span>
           <span class="ft-sum-value" style="color:${canAfford?'var(--green)':'var(--red)'}">
-            Rp ${formatNum(s.total_modal,0)} ${canAfford ? '✅' : '❌ Saldo Kurang'}
+            Rp ${formatNum(s.total_modal,0)} ${canAfford ? '✓' : '✕ Saldo Kurang'}
           </span>
         </div>
         <div class="ft-sum-row"><span class="ft-sum-label">Saldo Tersedia</span><span class="ft-sum-value">Rp ${formatNum(ftCash,0)}</span></div>
@@ -1786,8 +1931,8 @@ function ftUpdateRiskPanel(s, sl, tp, price, lots) {
       ${gainRp ? `<div class="ft-risk-row"><span class="ft-risk-label">Potensi Gain (TP)</span><span class="ft-risk-value" style="color:var(--green)">Rp ${formatNum(gainRp,0)}</span></div>` : ''}
       <div class="ft-risk-row"><span class="ft-risk-label">Risk/Reward Ratio</span><span class="ft-risk-value" style="color:var(--yellow)">1 : ${rr}</span></div>
       ${s.leverage > 1 ? `<div class="ft-risk-row"><span class="ft-risk-label">Bunga/Bulan</span><span class="ft-risk-value" style="color:var(--yellow)">Rp ${formatNum(s.interest_monthly_rp,0)}</span></div>` : ''}
-      <div style="margin-top:10px;padding:8px;background:${parseFloat(riskPct)>2?'#ff3d3d15':parseFloat(riskPct)>1?'#ffd60015':'#00e67615'};border-radius:6px;font-size:11px;color:var(--text-secondary)">
-        ${parseFloat(riskPct) > 3 ? '⚠️ Risiko TINGGI — lebih dari 3% modal' : parseFloat(riskPct) > 1 ? '⚡ Risiko SEDANG — 1-3% modal' : '✅ Risiko RENDAH — di bawah 1% modal'}
+      <div style="margin-top:10px;padding:8px;background:${parseFloat(riskPct)>2?'#F6465D15':parseFloat(riskPct)>1?'#F0B90B15':'#0ECB8115'};border-radius:6px;font-size:11px;color:var(--text-secondary)">
+        ${parseFloat(riskPct) > 3 ? 'Risiko TINGGI — lebih dari 3% modal' : parseFloat(riskPct) > 1 ? 'Risiko SEDANG — 1-3% modal' : 'Risiko RENDAH — di bawah 1% modal'}
       </div>
     </div>`;
 }
@@ -1818,7 +1963,7 @@ async function ftLoadPosition(ticker) {
           <span class="ft-risk-value" style="color:${pnlColor}">${pos.pnl_rp>=0?'+':''}Rp ${formatNum(pos.pnl_rp,0)} (${pos.pnl_pct>=0?'+':''}${pos.pnl_pct.toFixed(2)}%)</span>
         </div>
         <button class="btn-danger" style="width:100%;margin-top:10px;font-size:12px" onclick="ftSellAll('${pos.ticker}',${pos.current_price},${pos.lots})">
-          🔴 Jual Semua ${pos.lots} Lot
+          Jual Semua ${pos.lots} Lot
         </button>
       </div>`;
   } catch(e) {}
@@ -1873,10 +2018,10 @@ async function ftExecute(action) {
   const total = action === 'BUY' ? gross + fee : gross - fee;
   const levLabel = ftLeverage > 1 ? ` [${ftLeverage}x Leverage]` : '';
 
-  const modeLabel = ftMode === 'paper' ? '📄 Paper Trade' : '📱 Kirim Sinyal';
+  const modeLabel = ftMode === 'paper' ? 'Paper Trade' : 'Kirim Sinyal';
   const confBody  = `
     <div style="margin-bottom:14px">
-      <strong style="font-size:20px;color:${action==='BUY'?'var(--green)':'var(--red)'}">${action==='BUY'?'🟢 BUY':'🔴 SELL'} ${lots} lot ${ticker}${levLabel}</strong>
+      <strong style="font-size:20px;color:${action==='BUY'?'var(--green)':'var(--red)'}">${action==='BUY'?'BUY':'SELL'} ${lots} lot ${ticker}${levLabel}</strong>
     </div>
     <div style="font-size:13px;line-height:2;background:var(--bg-700);padding:12px;border-radius:8px">
       Harga   : <strong>Rp ${formatNum(price,0)}</strong><br>
@@ -1925,7 +2070,7 @@ async function ftDoExecute(action, ticker, price, lots, sl, tp, note) {
 
     if (result.success) {
       const alertOk = result.alert?.channels?.telegram?.success;
-      const alertMsg = alertOk ? ' · ✅ Terkirim ke Telegram' : '';
+      const alertMsg = alertOk ? ' · Terkirim ke Telegram' : '';
       showToast((result.message || `${action} berhasil`) + alertMsg, 'success');
       // Refresh
       loadPortfolioStats();
@@ -1940,34 +2085,6 @@ async function ftDoExecute(action, ticker, price, lots, sl, tp, note) {
   } finally {
     if (btnBuy)  btnBuy.disabled  = false;
     if (btnSell) btnSell.disabled = false;
-  }
-}
-
-// ── prepareOrder dari halaman Analisis ────────────────────────
-async function prepareOrder(action) {
-  if (!currentTicker) return;
-  // Pindah ke halaman trade dan isi form fast trade
-  showPage('trade');
-  document.getElementById('ft-ticker').value = currentTicker;
-  const price = currentAnalysis?.stock_info?.data?.current_price || 0;
-  if (price) {
-    ftCurrentPrice = price;
-    document.getElementById('ft-price-input').value = price;
-    document.getElementById('ft-sl').value = Math.round(price * 0.95);
-    document.getElementById('ft-tp').value = Math.round(price * 1.10);
-    // Isi SL/TP dari AI jika ada
-    const ai = currentAnalysis?.ai_analysis?.data;
-    if (ai?.entry_strategy) {
-      if (ai.entry_strategy.stop_loss)    document.getElementById('ft-sl').value = ai.entry_strategy.stop_loss;
-      if (ai.entry_strategy.take_profit_1) document.getElementById('ft-tp').value = ai.entry_strategy.take_profit_1;
-    }
-    // Auto fetch company name
-    const nameEl = document.getElementById('ft-company-name');
-    if (nameEl) nameEl.textContent = currentAnalysis?.stock_info?.data?.company_name || currentTicker;
-    const priceEl = document.getElementById('ft-price-val');
-    if (priceEl) priceEl.textContent = `Rp ${formatNum(price, 0)}`;
-    ftLoadPosition(currentTicker);
-    ftUpdateCalc();
   }
 }
 
@@ -2066,156 +2183,26 @@ async function executeSellDrawer() {
   } catch(e) {
     showToast('Error: ' + e.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = '🔴 Konfirmasi Jual';
+    btn.disabled = false; btn.textContent = 'Konfirmasi Jual';
   }
-}
-
-// ─── Order ────────────────────────────────────────────────────
-function switchOrderTab(tab) {
-  currentOrderTab = tab;
-  document.getElementById('tab-buy').className  = `order-tab${tab==='buy' ?' active buy':''}`;
-  document.getElementById('tab-sell').className = `order-tab${tab==='sell'?' active sell':''}`;
-  const execBtn  = document.getElementById('btn-execute');
-  const execIcon = document.getElementById('execute-icon');
-  const execText = document.getElementById('execute-text');
-  if (tab === 'sell') {
-    execBtn.className = 'btn-execute sell-mode';
-    execIcon.textContent = '🔴'; execText.textContent = 'Eksekusi SELL';
-  } else {
-    execBtn.className = 'btn-execute';
-    execIcon.textContent = '🟢'; execText.textContent = 'Eksekusi BUY';
-  }
-  updateOrderSummary();
-}
-
-function changeLots(delta) {
-  const inp = document.getElementById('order-lots');
-  inp.value = Math.max(1, (parseInt(inp.value)||1) + delta);
-  updateOrderSummary();
-}
-
-async function fetchOrderPrice() {
-  const ticker = document.getElementById('order-ticker').value.trim().toUpperCase();
-  if (!ticker) return;
-  try {
-    const res  = await fetch(`${API}/stock/${ticker}`);
-    const data = await res.json();
-    if (data.success) {
-      const price = data.data.current_price;
-      document.getElementById('order-price').value = price;
-      document.getElementById('order-price-info').innerHTML =
-        `${data.data.company_name} — <span style="color:${data.data.change_pct>=0?'var(--green)':'var(--red)'}">${data.data.change_pct>=0?'+':''}${data.data.change_pct.toFixed(2)}%</span>`;
-      updateOrderSummary();
-    }
-  } catch(e) { showToast('Gagal fetch harga', 'error'); }
-}
-
-async function updateOrderSummary() {
-  const price  = parseFloat(document.getElementById('order-price').value) || 0;
-  const lots   = parseInt(document.getElementById('order-lots').value) || 0;
-  const shares = lots * 100;
-  const gross  = price * shares;
-  const isBuy  = currentOrderTab === 'buy';
-  const fee    = gross * (isBuy ? 0.0019 : 0.0029);
-  const total  = isBuy ? gross + fee : gross - fee;
-
-  document.getElementById('summary-gross').textContent = `Rp ${formatNum(gross, 0)}`;
-  document.getElementById('summary-fee').textContent   = `Rp ${formatNum(fee, 0)}`;
-  document.getElementById('summary-total').textContent = `Rp ${formatNum(total, 0)}`;
-
-  try {
-    const port = await fetch(`${API}/portfolio`).then(r=>r.json());
-    if (port.success) {
-      const cash = port.data.cash;
-      const after = isBuy ? cash - total : cash + total;
-      document.getElementById('summary-after').textContent = `Rp ${formatNum(after, 0)}`;
-    }
-  } catch(e) {}
-
-  calcPositionSize();
-}
-
-function calcPositionSize() {
-  const price = parseFloat(document.getElementById('order-price').value) || 0;
-  const sl    = parseFloat(document.getElementById('calc-sl').value) || 0;
-  const risk  = parseFloat(document.getElementById('calc-risk').value) || 1;
-  const res   = document.getElementById('calc-result');
-
-  if (!price || !sl || price === sl) { res.textContent = ''; return; }
-  const capital   = 100_000_000;
-  const riskAmt   = capital * risk / 100;
-  const diff      = Math.abs(price - sl);
-  const shares    = riskAmt / diff;
-  const lots      = Math.max(1, Math.floor(shares / 100));
-  const rrRatio   = sl < price ? '— (SL di bawah entry)' : '— (SL di atas entry)';
-
-  res.innerHTML = `Optimal: <strong>${lots} lot</strong> (${lots*100} lembar) — risiko Rp ${formatNum(lots*100*diff,0)} = ${risk}% modal`;
-  document.getElementById('order-lots').value = lots;
-  updateOrderSummary();
-}
-
-async function executeOrder() {
-  const ticker = document.getElementById('order-ticker').value.trim().toUpperCase();
-  const price  = parseFloat(document.getElementById('order-price').value) || 0;
-  const lots   = parseInt(document.getElementById('order-lots').value) || 0;
-  const note   = document.getElementById('order-note').value;
-  const isBuy  = currentOrderTab === 'buy';
-
-  if (!ticker || price <= 0 || lots <= 0) {
-    showToast('Lengkapi form order!', 'error'); return;
-  }
-
-  const gross = price * lots * 100;
-  const fee   = gross * (isBuy ? 0.0019 : 0.0029);
-  const total = isBuy ? gross + fee : gross - fee;
-
-  // Show confirmation modal
-  showModal(
-    `Konfirmasi ${isBuy ? '🟢 BUY' : '🔴 SELL'}`,
-    `
-      <div style="margin-bottom:16px">
-        <strong style="font-size:18px;color:${isBuy?'var(--green)':'var(--red)'}">${isBuy?'BUY':'SELL'} ${lots} lot ${ticker}</strong>
-      </div>
-      <div style="font-size:13px;line-height:2">
-        Harga: Rp ${formatNum(price,0)}<br>
-        Jumlah: ${lots} lot (${lots*100} lembar)<br>
-        Nilai: Rp ${formatNum(gross,0)}<br>
-        Fee (${isBuy?'0.19%':'0.29%'}): Rp ${formatNum(fee,0)}<br>
-        <strong>${isBuy?'Total Bayar':'Net Terima'}: Rp ${formatNum(total,0)}</strong>
-      </div>`,
-    async () => {
-      try {
-        const endpoint = isBuy ? 'buy' : 'sell';
-        const res  = await fetch(`${API}/portfolio/${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ticker, price, lots, note }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          showToast(data.message, 'success');
-          loadPortfolioStats();
-          loadRecentOrders();
-        } else {
-          showToast(`Error: ${data.error}`, 'error');
-        }
-      } catch(e) {
-        showToast(`Gagal: ${e.message}`, 'error');
-      }
-    },
-    isBuy ? 'Konfirmasi BUY' : 'Konfirmasi SELL',
-    !isBuy
-  );
 }
 
 async function prepareOrder(action) {
-  if (!currentAnalysis) return;
-  const price = currentAnalysis.stock_info?.data?.current_price || 0;
-  document.getElementById('order-ticker').value = currentTicker;
-  document.getElementById('order-price').value  = price;
-  if (action === 'SELL') switchOrderTab('sell');
-  else switchOrderTab('buy');
-  updateOrderSummary();
+  if (!currentAnalysis) { showPage('trade'); return; }
+
+  // Jika ada analisis AI → isi form sesuai harga yang ditentukan AI
+  if (currentAI) { applyAITradePlan(action); return; }
+
+  // Tanpa AI → fallback ke harga pasar + SL/TP default
+  const info  = currentAnalysis.stock_info?.data || {};
+  const price = info.current_price || 0;
+  document.getElementById('ft-ticker').value      = currentTicker;
+  document.getElementById('ft-price-input').value = price;
+  document.getElementById('ft-sl').value          = Math.round(price * 0.95);
+  document.getElementById('ft-tp').value          = Math.round(price * 1.10);
+  document.getElementById('ft-lots').value        = 1;
+  ftCurrentPrice = price;
+  ftUpdateCalc();
   showPage('trade');
 }
 
@@ -2272,7 +2259,7 @@ async function loadRecentOrders() {
     const el = document.getElementById('recent-orders-content');
     if (!history.length) { el.innerHTML = `<p class="empty-msg">Belum ada order</p>`; return; }
     el.innerHTML = history.map(t => `
-      <div style="padding:8px 0;border-bottom:1px solid #131d30;font-size:12px">
+      <div style="padding:8px 0;border-bottom:1px solid #202026;font-size:12px">
         <div style="display:flex;justify-content:space-between">
           <span class="trade-type-${t.type.toLowerCase()}">${t.type}</span>
           <strong class="ticker-cell">${t.ticker}</strong>
@@ -2326,8 +2313,8 @@ async function loadAlertConfigToSettings() {
           <input type="text" id="tg-app" class="form-input" placeholder="Neo HOTS" value="${cfg.broker_app_name||'Neo HOTS'}" />
         </div>
         <div class="alert-field" style="display:flex;gap:10px">
-          <button class="btn-execute" style="flex:1" onclick="saveAlertConfig()">💾 Simpan Konfigurasi</button>
-          <button class="btn-neutral" style="flex:1" onclick="testAlertConfig()">📱 Test Kirim</button>
+          <button class="btn-execute" style="flex:1" onclick="saveAlertConfig()">Simpan Konfigurasi</button>
+          <button class="btn-neutral" style="flex:1" onclick="testAlertConfig()">Test Kirim</button>
         </div>
         <div id="alert-save-result" style="font-size:12px;margin-top:8px;color:var(--text-secondary)"></div>
       </div>`;
@@ -2361,7 +2348,7 @@ async function saveAlertConfig() {
     });
     const data = await res.json();
     if (result) result.innerHTML = data.success
-      ? '<span style="color:var(--green)">✅ Konfigurasi disimpan</span>'
+      ? '<span style="color:var(--green)">Konfigurasi disimpan</span>'
       : `<span style="color:var(--red)">Error: ${data.error}</span>`;
     ftLoadAlertStatus();
   } catch(e) {
@@ -2384,8 +2371,8 @@ async function testAlertConfig() {
     });
     const data = await res.json();
     if (result) result.innerHTML = data.success
-      ? '<span style="color:var(--green)">✅ Pesan test berhasil dikirim! Cek Telegram kamu.</span>'
-      : `<span style="color:var(--red)">❌ Gagal: ${data.error}</span>`;
+      ? '<span style="color:var(--green)">Pesan test berhasil dikirim! Cek Telegram kamu.</span>'
+      : `<span style="color:var(--red)">Gagal: ${data.error}</span>`;
   } catch(e) {
     if (result) result.innerHTML = `<span style="color:var(--red)">Gagal: ${e.message}</span>`;
   }
@@ -2396,14 +2383,14 @@ async function checkServerHealth() {
     const res  = await fetch(`${API}/health`);
     const data = await res.json();
     document.getElementById('api-health').innerHTML =
-      `<span style="color:var(--green)">✅ Online</span> — v${data.version} | ${data.time?.substring(0,10)}`;
+      `<span style="color:var(--green)">Online</span> — v${data.version} | ${data.time?.substring(0,10)}`;
   } catch(e) {
-    document.getElementById('api-health').innerHTML = `<span style="color:var(--red)">❌ Offline — Jalankan: python server.py</span>`;
+    document.getElementById('api-health').innerHTML = `<span style="color:var(--red)">Offline — Jalankan: python server.py</span>`;
   }
 }
 
 function resetPortfolioConfirm() {
-  showModal('⚠️ Reset Portfolio',
+  showModal('Reset Portfolio',
     `<p>Apakah Anda yakin ingin mereset portfolio?</p>
      <p style="color:var(--red);margin-top:8px"><strong>Semua posisi dan riwayat transaksi akan dihapus!</strong></p>
      <p style="color:var(--text-muted);font-size:12px;margin-top:8px">Modal akan kembali ke Rp 100.000.000</p>`,
@@ -2473,9 +2460,9 @@ function formatCap(n) {
 
 function scoreColor(s) {
   if (s >= 75) return 'var(--green)';
-  if (s >= 60) return '#4ade80';
+  if (s >= 60) return '#0ECB81';
   if (s >= 45) return 'var(--yellow)';
-  if (s >= 30) return '#f97316';
+  if (s >= 30) return '#e58e26';
   return 'var(--red)';
 }
 
@@ -2495,18 +2482,18 @@ function overallSignal(s) {
 }
 
 function sentimentEmoji(s) {
-  if (s === 'BULLISH') return '🟢';
-  if (s === 'BEARISH') return '🔴';
-  return '🟡';
+  if (s === 'BULLISH') return '▲';
+  if (s === 'BEARISH') return '▼';
+  return '●';
 }
 
 function recColors(rec) {
   const map = {
-    'STRONG BUY': ['#00e67610', '#00e676'],
-    'BUY':        ['#4ade8010', '#4ade80'],
-    'HOLD':       ['#ffd60010', '#ffd600'],
-    'SELL':       ['#f9731610', '#f97316'],
-    'STRONG SELL':['#ff3d3d10', '#ff3d3d'],
+    'STRONG BUY': ['#0ECB8110', '#0ECB81'],
+    'BUY':        ['#0ECB8110', '#0ECB81'],
+    'HOLD':       ['#F0B90B10', '#F0B90B'],
+    'SELL':       ['#e58e2610', '#e58e26'],
+    'STRONG SELL':['#F6465D10', '#F6465D'],
   };
   return map[rec] || ['#1e2d4710', '#1e2d47'];
 }

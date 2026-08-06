@@ -20,9 +20,9 @@ os.makedirs(DATA_DIR, exist_ok=True)
 # ─── Leverage Config (simulasi margin BEI) ───────────────────
 LEVERAGE_CONFIG = {
     1: {"label": "1x — Reguler",     "modal_ratio": 1.0,  "interest_daily": 0.0,   "color": "#8899bb", "risk": "LOW"},
-    2: {"label": "2x — Margin",      "modal_ratio": 0.5,  "interest_daily": 0.045, "color": "#fbbf24", "risk": "MEDIUM"},
-    3: {"label": "3x — Margin Plus", "modal_ratio": 0.333,"interest_daily": 0.065, "color": "#f97316", "risk": "HIGH"},
-    5: {"label": "5x — Full Margin", "modal_ratio": 0.2,  "interest_daily": 0.10,  "color": "#ef4444", "risk": "VERY HIGH"},
+    2: {"label": "2x — Margin",      "modal_ratio": 0.5,  "interest_daily": 0.045, "color": "#F0B90B", "risk": "MEDIUM"},
+    3: {"label": "3x — Margin Plus", "modal_ratio": 0.333,"interest_daily": 0.065, "color": "#e58e26", "risk": "HIGH"},
+    5: {"label": "5x — Full Margin", "modal_ratio": 0.2,  "interest_daily": 0.10,  "color": "#F6465D", "risk": "VERY HIGH"},
 }
 
 
@@ -218,7 +218,7 @@ def buy_stock(ticker: str, price: float, lots: int, note: str = "") -> Dict[str,
         "total_cost": costs["total_cost"],
         "fee":     costs["fee"],
         "remaining_cash": portfolio["cash"],
-        "message": f"✅ Beli {lots} lot {ticker} @ Rp {price:,.0f}. Total: Rp {costs['total_cost']:,.0f} (fee: Rp {costs['fee']:,.0f})",
+        "message": f"Beli {lots} lot {ticker} @ Rp {price:,.0f}. Total: Rp {costs['total_cost']:,.0f} (fee: Rp {costs['fee']:,.0f})",
     }
 
 
@@ -293,9 +293,9 @@ def sell_stock(ticker: str, price: float, lots: int, note: str = "") -> Dict[str
         "pnl_pct": round(pnl_pct, 2),
         "remaining_cash": portfolio["cash"],
         "message": (
-            f"✅ Jual {lots} lot {ticker} @ Rp {price:,.0f}. "
+            f"Jual {lots} lot {ticker} @ Rp {price:,.0f}. "
             f"Net: Rp {proceeds['net_proceed']:,.0f} | "
-            f"P&L: {'🟢' if pnl_rp >= 0 else '🔴'} Rp {pnl_rp:+,.0f} ({pnl_pct:+.2f}%)"
+            f"P&L: {'+' if pnl_rp >= 0 else '-'} Rp {abs(pnl_rp):,.0f} ({pnl_pct:+.2f}%)"
         ),
     }
 

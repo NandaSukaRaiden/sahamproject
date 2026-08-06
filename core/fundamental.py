@@ -272,19 +272,19 @@ def run_fundamental_analysis(info: Dict[str, Any]) -> Dict[str, Any]:
     # Sinyal fundamental
     if composite >= 80:
         signal = "STRONG BUY"
-        color  = "#00ff88"
+        color  = "#0ECB81"
     elif composite >= 65:
         signal = "BUY"
-        color  = "#4ade80"
+        color  = "#0ECB81"
     elif composite >= 45:
         signal = "HOLD"
-        color  = "#fbbf24"
+        color  = "#F0B90B"
     elif composite >= 30:
         signal = "SELL"
-        color  = "#f97316"
+        color  = "#e58e26"
     else:
         signal = "STRONG SELL"
-        color  = "#ef4444"
+        color  = "#F6465D"
 
     # Market cap kategori
     if mktcap >= 100_000_000_000_000:

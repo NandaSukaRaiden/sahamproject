@@ -1,6 +1,6 @@
 """
-core/gemini_brain.py — Google Gemini AI Trading Analyst
-Mengintegrasikan semua data untuk menghasilkan analisis komprehensif dan keputusan trading
+core/gemini_brain.py — AI Trading Analyst
+Support Google Gemini (AIza...) dan OpenRouter/DeepSeek (sk-...)
 """
 import logging
 import json
@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from config import GEMINI_API_KEY, GEMINI_MODEL
+from config import GEMINI_API_KEY, GEMINI_MODEL, AI_PROVIDER, OPENROUTER_BASE_URL, OPENROUTER_MODEL
 
 try:
     from google import genai
@@ -17,19 +17,115 @@ try:
     GENAI_AVAILABLE = True
 except ImportError:
     GENAI_AVAILABLE = False
-    logger_tmp = logging.getLogger(__name__)
-    logger_tmp.warning("[gemini] google-genai not installed. Run: pip install google-genai")
+
+try:
+    from openai import OpenAI as _OpenAI
+    OPENAI_SDK_AVAILABLE = True
+except ImportError:
+    OPENAI_SDK_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
 
 def get_gemini_client():
-    """Inisialisasi Gemini client."""
+    """Inisialisasi Gemini client (hanya untuk provider gemini)."""
     if not GENAI_AVAILABLE:
         raise ImportError("google-genai belum terinstall. Jalankan: pip install google-genai")
     if not GEMINI_API_KEY or GEMINI_API_KEY == "your_gemini_api_key_here":
         raise ValueError("GEMINI_API_KEY belum diset di file .env !")
     return genai.Client(api_key=GEMINI_API_KEY)
+
+
+def get_openrouter_client():
+    """Inisialisasi kenari.id / OpenRouter client (OpenAI-compatible)."""
+    if not OPENAI_SDK_AVAILABLE:
+        raise ImportError("openai SDK belum terinstall. Jalankan: pip install openai")
+    if not GEMINI_API_KEY:
+        raise ValueError("API key belum diset di file .env !")
+    return _OpenAI(
+        api_key=GEMINI_API_KEY,
+        base_url=OPENROUTER_BASE_URL,
+    )
+
+
+def _call_ai(prompt: str, temperature: float = 0.2, max_tokens: int = 4096, require_json: bool = False) -> str:
+    """
+    Unified AI call — otomatis pilih provider berdasarkan AI_PROVIDER.
+    Returns raw text response.
+
+    - require_json=True: tambah system message yang force JSON-only output.
+    - Jika model utama gagal, otomatis fallback ke model lain (kenari/openrouter).
+    - Strip <think>...</think> tags dari DeepSeek reasoning models.
+    """
+    import re as _re
+
+    if AI_PROVIDER in ("openrouter", "kenari"):
+        client = get_openrouter_client()
+
+        messages = []
+        if require_json:
+            messages.append({
+                "role": "system",
+                "content": (
+                    "You are a JSON-only API. Output ONLY valid JSON, no markdown, "
+                    "no explanation, no thinking tags, no chain of thought. "
+                    "Start your response with { and end with }."
+                ),
+            })
+        messages.append({"role": "user", "content": prompt})
+
+        # Urutan fallback: model utama → step-3-7-flash:free → glm-4-7-flash:free
+        models_to_try = [OPENROUTER_MODEL, "step-3-7-flash:free", "glm-4-7-flash:free"]
+        # Deduplikasi jaga-jaga kalau OPENROUTER_MODEL sudah salah satunya
+        seen = set()
+        unique_models = []
+        for m in models_to_try:
+            if m not in seen:
+                seen.add(m)
+                unique_models.append(m)
+
+        last_err = None
+        for model in unique_models:
+            try:
+                resp = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                choice = resp.choices[0]
+                content = choice.message.content
+                # Beberapa model reasoning taruh output di reasoning field, bukan content
+                if not content:
+                    content = getattr(choice.message, "reasoning", None) or ""
+                content = (content or "").strip()
+
+                # Strip <think>...</think> tags yang kadang muncul dari DeepSeek
+                content = _re.sub(r"<think>.*?</think>", "", content, flags=_re.DOTALL).strip()
+
+                if content:
+                    if model != OPENROUTER_MODEL:
+                        logger.info(f"[ai] Fallback ke model: {model}")
+                    return content
+            except Exception as e:
+                logger.warning(f"[ai] Model {model} gagal: {e}")
+                last_err = e
+                continue
+
+        raise last_err or Exception("Semua model AI gagal menghasilkan response")
+
+    else:
+        client = get_gemini_client()
+        resp = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=temperature,
+                top_p=0.95,
+                max_output_tokens=max_tokens,
+            ),
+        )
+        return resp.text.strip()
 
 
 def build_master_prompt(
@@ -209,6 +305,41 @@ PENTING: Response HANYA berisi JSON valid. Tidak ada teks, markdown, atau koment
     return prompt
 
 
+def _extract_json_from_text(text: str) -> str:
+    """
+    Ekstrak JSON dari teks yang mungkin berisi noise (markdown, chain-of-thought, dll).
+    Mencoba beberapa strategi:
+    1. Strip markdown code fences
+    2. Cari blok { ... } terbesar
+    """
+    # Bersihkan markdown code fences
+    clean = re.sub(r"^```json\s*", "", text, flags=re.MULTILINE)
+    clean = re.sub(r"^```\s*",     "", clean, flags=re.MULTILINE)
+    clean = re.sub(r"\s*```$",     "", clean, flags=re.MULTILINE)
+    clean = clean.strip()
+
+    # Coba parse langsung
+    try:
+        json.loads(clean)
+        return clean
+    except json.JSONDecodeError:
+        pass
+
+    # Cari blok JSON terbesar (dari { pertama sampai } terakhir)
+    start = clean.find("{")
+    end   = clean.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        candidate = clean[start:end + 1]
+        try:
+            json.loads(candidate)
+            return candidate
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback: kembalikan teks bersih apa adanya (akan gagal parse di caller)
+    return clean
+
+
 def analyze_stock_with_ai(
     ticker: str,
     stock_info: Dict,
@@ -219,73 +350,95 @@ def analyze_stock_with_ai(
     portfolio_context: Dict = None,
 ) -> Dict[str, Any]:
     """
-    Jalankan analisis AI lengkap menggunakan Google Gemini.
+    Jalankan analisis AI lengkap — support Gemini, OpenRouter, & kenari.id.
+
+    Fitur tambahan:
+    - require_json=True agar model DeepSeek langsung output JSON
+    - Strip <think> tags sebelum parse
+    - Retry 1x dengan prompt lebih strict jika JSON parse gagal pertama kali
+    - Regex extraction sebagai fallback sebelum retry
     """
+    raw_text = ""
     try:
-        client = get_gemini_client()
         prompt = build_master_prompt(
             ticker, stock_info, fundamental, technical, news, flow, portfolio_context
         )
 
-        logger.info(f"[gemini] Sending analysis request for {ticker}...")
-
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.2,       # rendah untuk analisis yang konsisten
-                top_p=0.95,
-                max_output_tokens=4096,
-            ),
+        provider_label = (
+            f"kenari/{OPENROUTER_MODEL}" if AI_PROVIDER == "kenari"
+            else f"openrouter/{OPENROUTER_MODEL}" if AI_PROVIDER == "openrouter"
+            else f"gemini/{GEMINI_MODEL}"
         )
+        logger.info(f"[ai] Sending analysis request for {ticker} via {provider_label}...")
 
-        raw_text = response.text.strip()
+        raw_text = _call_ai(prompt, temperature=0.2, max_tokens=4096, require_json=True)
 
-        # Bersihkan markdown jika ada
-        raw_text = re.sub(r"^```json\s*", "", raw_text, flags=re.MULTILINE)
-        raw_text = re.sub(r"^```\s*", "", raw_text, flags=re.MULTILINE)
-        raw_text = re.sub(r"\s*```$", "", raw_text, flags=re.MULTILINE)
+        def _parse_result(text: str) -> Dict:
+            """Coba parse, return dict jika berhasil."""
+            cleaned = _extract_json_from_text(text)
+            return json.loads(cleaned)
 
-        # Parse JSON
-        result = json.loads(raw_text)
+        # ── Attempt 1: parse langsung ────────────────────────
+        parse_err = None
+        result = None
+        try:
+            result = _parse_result(raw_text)
+        except json.JSONDecodeError as e:
+            parse_err = e
+            logger.warning(f"[ai] JSON parse attempt 1 gagal untuk {ticker}: {e}. Mencoba retry...")
+
+        # ── Attempt 2: retry dengan prompt strict JSON ────────
+        if result is None:
+            strict_prompt = (
+                "Output ONLY a raw JSON object, nothing else. "
+                "No markdown, no explanation, no thinking. Start with { and end with }.\n\n"
+                + prompt
+            )
+            try:
+                raw_text = _call_ai(strict_prompt, temperature=0.1, max_tokens=4096, require_json=True)
+                result = _parse_result(raw_text)
+                logger.info(f"[ai] JSON parse berhasil pada retry untuk {ticker}")
+            except json.JSONDecodeError as e:
+                # Raise error terakhir
+                raise json.JSONDecodeError(
+                    f"JSON parse gagal setelah 2 percobaan: {e}", e.doc, e.pos
+                )
+
         result["raw_prompt_length"] = len(prompt)
-        result["model_used"]        = GEMINI_MODEL
+        result["model_used"]        = OPENROUTER_MODEL if AI_PROVIDER in ("openrouter", "kenari") else GEMINI_MODEL
+        result["provider"]          = AI_PROVIDER
         result["analyzed_at"]       = datetime.now().isoformat()
         result["ticker"]            = ticker.upper()
 
-        logger.info(f"[gemini] ✅ Analysis complete for {ticker}: {result.get('recommendation','?')} ({result.get('confidence','?')}%)")
+        logger.info(
+            f"[ai] Analysis complete for {ticker}: "
+            f"{result.get('recommendation','?')} ({result.get('confidence','?')}%)"
+        )
         return {"success": True, "data": result}
 
     except json.JSONDecodeError as e:
-        logger.error(f"[gemini] JSON parse error for {ticker}: {e}")
-        logger.error(f"[gemini] Raw response: {raw_text[:500] if 'raw_text' in dir() else 'N/A'}")
+        logger.error(f"[ai] JSON parse error for {ticker}: {e}")
         return {
             "success": False,
             "error": f"JSON parse error: {e}",
-            "raw_response": raw_text[:1000] if 'raw_text' in dir() else "",
+            "raw_response": raw_text[:1000],
         }
     except Exception as e:
-        logger.error(f"[gemini] Error for {ticker}: {e}")
+        logger.error(f"[ai] Error for {ticker}: {e}")
         return {"success": False, "error": str(e)}
 
 
 def quick_sentiment_check(text: str) -> Dict[str, Any]:
-    """Quick sentiment check pada teks berita menggunakan Gemini."""
+    """Quick sentiment check pada teks berita."""
     try:
-        client = get_gemini_client()
         prompt = f"""Analisis sentimen teks berita saham Indonesia berikut. 
 Berikan response JSON: {{"sentiment": "POSITIF|NEGATIF|NETRAL", "score": <-100 sampai 100>, "reason": "<alasan singkat>"}}
 
 Teks: {text[:500]}
 
 Response hanya JSON, tidak ada teks lain."""
-
-        resp = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.1, max_output_tokens=200),
-        )
-        raw = resp.text.strip().replace("```json", "").replace("```", "").strip()
+        raw = _call_ai(prompt, temperature=0.1, max_tokens=200, require_json=True)
+        raw = _extract_json_from_text(raw)
         return {"success": True, "data": json.loads(raw)}
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -294,8 +447,6 @@ Response hanya JSON, tidak ada teks lain."""
 def generate_market_outlook(watchlist_data: list) -> Dict[str, Any]:
     """Generate market outlook untuk beberapa saham sekaligus."""
     try:
-        client = get_gemini_client()
-
         stocks_summary = "\n".join([
             f"- {d.get('ticker')}: Rp {d.get('price',0):,.0f} ({d.get('change_pct',0):+.1f}%) | "
             f"Score: {d.get('overall_score', 50):.0f}/100 | Signal: {d.get('signal','?')}"
@@ -322,12 +473,8 @@ Response JSON:
 
 Hanya JSON, tidak ada teks lain."""
 
-        resp = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.3, max_output_tokens=1000),
-        )
-        raw = resp.text.strip().replace("```json", "").replace("```", "").strip()
+        raw = _call_ai(prompt, temperature=0.3, max_tokens=1000, require_json=True)
+        raw = _extract_json_from_text(raw)
         return {"success": True, "data": json.loads(raw)}
     except Exception as e:
         return {"success": False, "error": str(e)}

@@ -79,25 +79,25 @@ def find_support_resistance(closes: pd.Series, n=10) -> Dict[str, List[float]]:
 
 def interpret_rsi(rsi: float) -> Dict:
     if rsi >= 80:
-        return {"signal": "OVERBOUGHT EKSTREM", "score": 10, "color": "#ef4444",
+        return {"signal": "OVERBOUGHT EKSTREM", "score": 10, "color": "#F6465D",
                 "note": f"RSI {rsi:.1f} — sangat overbought, waspada reversal"}
     elif rsi >= 70:
-        return {"signal": "OVERBOUGHT", "score": 30, "color": "#f97316",
+        return {"signal": "OVERBOUGHT", "score": 30, "color": "#e58e26",
                 "note": f"RSI {rsi:.1f} — zona overbought, potensi koreksi"}
     elif rsi >= 60:
-        return {"signal": "BULLISH", "score": 65, "color": "#86efac",
+        return {"signal": "BULLISH", "score": 65, "color": "#0ECB81",
                 "note": f"RSI {rsi:.1f} — momentum bullish kuat"}
     elif rsi >= 40:
-        return {"signal": "NETRAL", "score": 55, "color": "#fbbf24",
+        return {"signal": "NETRAL", "score": 55, "color": "#F0B90B",
                 "note": f"RSI {rsi:.1f} — netral, tunggu konfirmasi"}
     elif rsi >= 30:
-        return {"signal": "BEARISH", "score": 45, "color": "#f97316",
+        return {"signal": "BEARISH", "score": 45, "color": "#e58e26",
                 "note": f"RSI {rsi:.1f} — momentum bearish"}
     elif rsi >= 20:
-        return {"signal": "OVERSOLD", "score": 75, "color": "#4ade80",
+        return {"signal": "OVERSOLD", "score": 75, "color": "#0ECB81",
                 "note": f"RSI {rsi:.1f} — zona oversold, potensi bounce"}
     else:
-        return {"signal": "OVERSOLD EKSTREM", "score": 85, "color": "#00ff88",
+        return {"signal": "OVERSOLD EKSTREM", "score": 85, "color": "#0ECB81",
                 "note": f"RSI {rsi:.1f} — sangat oversold, peluang buy tinggi"}
 
 

@@ -326,6 +326,54 @@ def analyze_stock(ticker):
             scores["flow"]        * 0.20
         )
 
+        # 9. AI-adjusted scores — AI bisa mengoreksi skor teknikal & analisis lain
+        ai_data    = ai_result.get("data", {}) if ai_result and ai_result.get("success") else {}
+        ai_scores  = ai_data.get("scores", {}) if isinstance(ai_data, dict) else {}
+        ai_adjusted = bool(ai_scores)
+
+        def _adj_score(key):
+            v = ai_scores.get(key)
+            if isinstance(v, (int, float)) and 0 <= v <= 100:
+                return float(v)
+            return None
+
+        _f  = _adj_score("fundamental")
+        _t  = _adj_score("technical")
+        _n  = _adj_score("sentiment")
+        _fl = _adj_score("flow")
+        adjusted_scores = {
+            "fundamental": _f  if _f  is not None else scores["fundamental"],
+            "technical":   _t  if _t  is not None else scores["technical"],
+            "sentiment":   _n  if _n  is not None else scores["sentiment"],
+            "flow":        _fl if _fl is not None else scores["flow"],
+        }
+        adjusted_overall = (
+            adjusted_scores["fundamental"] * 0.30 +
+            adjusted_scores["technical"]   * 0.30 +
+            adjusted_scores["sentiment"]   * 0.20 +
+            adjusted_scores["flow"]        * 0.20
+        )
+
+        # 10. AI Trade Plan — harga entry/SL/TP yang ditentukan AI
+        ai_trade_plan = None
+        if isinstance(ai_data, dict) and ai_data.get("entry_strategy"):
+            es = ai_data["entry_strategy"]
+            ai_trade_plan = {
+                "entry":            es.get("recommended_entry"),
+                "entry_zone_low":   es.get("entry_zone_low"),
+                "entry_zone_high":  es.get("entry_zone_high"),
+                "stop_loss":        es.get("stop_loss"),
+                "take_profit_1":    es.get("take_profit_1"),
+                "take_profit_2":    es.get("take_profit_2"),
+                "take_profit_3":    es.get("take_profit_3"),
+                "risk_reward_ratio": es.get("risk_reward_ratio"),
+                "lot_suggestion":   es.get("lot_suggestion"),
+                "recommendation":   ai_data.get("recommendation"),
+                "confidence":       ai_data.get("confidence"),
+                "time_horizon":     ai_data.get("time_horizon"),
+                "risk_level":       ai_data.get("risk_level"),
+            }
+
         response = {
             "success":    True,
             "ticker":     ticker,
@@ -338,6 +386,13 @@ def analyze_stock(ticker):
             "ai_analysis": ai_result,
             "scores":     scores,
             "overall_score": round(overall_score, 1),
+            "adjusted": {
+                "ai_adjusted":  ai_adjusted,
+                "ai_available": bool(ai_data),
+                "scores":       adjusted_scores,
+                "overall_score": round(adjusted_overall, 1),
+            },
+            "ai_trade_plan": ai_trade_plan,
             "analyzed_at": datetime.now().isoformat(),
         }
 

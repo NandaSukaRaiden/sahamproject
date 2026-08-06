@@ -229,7 +229,7 @@ def detect_whale_signals(df: pd.DataFrame) -> Dict[str, Any]:
         if max_vr >= 5.0:
             signals.append({
                 "type": "VOL_EXTREME",
-                "icon": "🔴",
+                "icon": "▼",
                 "label": "VOLUME EKSTREM",
                 "message": f"Volume {max_vr:.1f}x dari rata-rata 20 hari! Kemungkinan aksi institusional atau bandar besar sedang bergerak.",
                 "severity": "CRITICAL",
@@ -239,7 +239,7 @@ def detect_whale_signals(df: pd.DataFrame) -> Dict[str, Any]:
         elif max_vr >= 3.0:
             signals.append({
                 "type": "VOL_HIGH",
-                "icon": "🟠",
+                "icon": "◆",
                 "label": "VOLUME TINGGI",
                 "message": f"Volume {max_vr:.1f}x dari rata-rata. Potensi akumulasi/distribusi besar oleh institusi.",
                 "severity": "HIGH",
@@ -250,7 +250,7 @@ def detect_whale_signals(df: pd.DataFrame) -> Dict[str, Any]:
         elif max_vr >= 2.0:
             signals.append({
                 "type": "VOL_MODERATE",
-                "icon": "🟡",
+                "icon": "●",
                 "label": "VOLUME DI ATAS NORMAL",
                 "message": f"Volume {max_vr:.1f}x rata-rata. Aktivitas lebih aktif dari biasa.",
                 "severity": "MEDIUM",
@@ -271,7 +271,7 @@ def detect_whale_signals(df: pd.DataFrame) -> Dict[str, Any]:
             if price_chg < -1.5 and obv_chg > 8.0:
                 signals.append({
                     "type": "OBV_DIV_BULL",
-                    "icon": "🟢",
+                    "icon": "▲",
                     "label": "AKUMULASI DIAM-DIAM",
                     "message": f"Harga turun {price_chg:.1f}% tapi OBV naik {obv_chg:.1f}% — Bandar/institusi akumulasi secara tersembunyi!",
                     "severity": "HIGH",
@@ -284,7 +284,7 @@ def detect_whale_signals(df: pd.DataFrame) -> Dict[str, Any]:
             elif price_chg > 1.5 and obv_chg < -8.0:
                 signals.append({
                     "type": "OBV_DIV_BEAR",
-                    "icon": "🔴",
+                    "icon": "▼",
                     "label": "DISTRIBUSI DIAM-DIAM",
                     "message": f"Harga naik {price_chg:.1f}% tapi OBV turun {obv_chg:.1f}% — Bandar sedang distribusi/jual diam-diam!",
                     "severity": "CRITICAL",
@@ -298,7 +298,7 @@ def detect_whale_signals(df: pd.DataFrame) -> Dict[str, Any]:
         if current_mfi >= 85:
             signals.append({
                 "type": "MFI_EXTREME_OB",
-                "icon": "🔴",
+                "icon": "▼",
                 "label": "MFI OVERBOUGHT EKSTREM",
                 "message": f"MFI {current_mfi:.0f} — Uang mengalir keluar sangat kuat. Waspada distribusi besar.",
                 "severity": "HIGH",
@@ -309,7 +309,7 @@ def detect_whale_signals(df: pd.DataFrame) -> Dict[str, Any]:
         elif current_mfi <= 15:
             signals.append({
                 "type": "MFI_EXTREME_OS",
-                "icon": "🟢",
+                "icon": "▲",
                 "label": "MFI OVERSOLD EKSTREM",
                 "message": f"MFI {current_mfi:.0f} — Uang mengalir masuk sangat kuat. Potensi akumulasi bawah oleh institusi.",
                 "severity": "HIGH",
@@ -327,7 +327,7 @@ def detect_whale_signals(df: pd.DataFrame) -> Dict[str, Any]:
         if adl_chg > 0 and price_chg_10 < 0:
             signals.append({
                 "type": "ADL_BULL_DIVERGENCE",
-                "icon": "🔵",
+                "icon": "○",
                 "label": "A/D LINE BULLISH",
                 "message": "Accumulation/Distribution Line naik meski harga turun — sinyal akumulasi institusi tersembunyi.",
                 "severity": "MEDIUM",

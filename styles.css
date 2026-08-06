@@ -1,40 +1,40 @@
 /* ============================================================
    styles.css — AI Trading Bot Saham Indonesia
-   Premium Dark Mode Design System
+   Exchange Terminal Design System (B/W, terinspirasi Bitget/Bybit)
    ============================================================ */
 
 :root {
   /* ─── Color Palette ──────────────────────── */
-  --bg-900:       #080b12;
-  --bg-800:       #0d1117;
-  --bg-700:       #111622;
-  --bg-600:       #161d2e;
-  --bg-500:       #1b2438;
-  --bg-400:       #212d45;
-  --panel-bg:     #0f1520;
-  --panel-border: #1e2d47;
+  --bg-900:       #0b0b0d;
+  --bg-800:       #121214;
+  --bg-700:       #18181b;
+  --bg-600:       #1e1e22;
+  --bg-500:       #25252a;
+  --bg-400:       #2f2f36;
+  --panel-bg:     #141417;
+  --panel-border: #26262c;
 
-  /* Brand gradient */
-  --brand-1:      #00d4ff;
-  --brand-2:      #7c3aed;
-  --brand-3:      #00ff88;
+  /* Brand — monokrom */
+  --brand-1:      #ffffff;
+  --brand-2:      #9a9aa4;
+  --brand-3:      #ffffff;
 
-  /* Semantic colors */
-  --green:        #00e676;
-  --green-soft:   #00c96440;
-  --red:          #ff3d3d;
-  --red-soft:     #ff3d3d30;
-  --yellow:       #ffd600;
-  --yellow-soft:  #ffd60030;
-  --blue:         #448aff;
-  --blue-soft:    #448aff25;
-  --purple:       #aa00ff;
+  /* Semantic colors — hanya untuk sinyal trading */
+  --green:        #0ECB81;
+  --green-soft:   #0ECB8120;
+  --red:          #F6465D;
+  --red-soft:     #F6465D1A;
+  --yellow:       #F0B90B;
+  --yellow-soft:  #F0B90B1F;
+  --blue:         #9ca3af;
+  --blue-soft:    #9ca3af20;
+  --purple:       #9a9aa4;
 
   /* Text */
-  --text-primary:   #e8edf8;
-  --text-secondary: #8899bb;
-  --text-muted:     #4a5a7a;
-  --text-accent:    #00d4ff;
+  --text-primary:   #f5f5f7;
+  --text-secondary: #a1a1aa;
+  --text-muted:     #63636b;
+  --text-accent:    #ffffff;
 
   /* UI */
   --sidebar-w:    240px;
@@ -42,8 +42,8 @@
   --radius:       12px;
   --radius-sm:    8px;
   --radius-lg:    16px;
-  --shadow:       0 4px 24px #00000066;
-  --shadow-glow:  0 0 20px #00d4ff33;
+  --shadow:       0 4px 24px rgba(0,0,0,0.45);
+  --shadow-glow:  0 0 20px rgba(255,255,255,0.05);
   --transition:   0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -87,7 +87,15 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 }
 
 .logo { display: flex; align-items: center; gap: 12px; }
-.logo-icon { font-size: 28px; animation: float 3s ease-in-out infinite; }
+.logo-icon {
+  width: 34px; height: 34px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--panel-border);
+  border-radius: 9px;
+  background: var(--bg-700);
+  color: var(--text-primary);
+}
+.logo-icon svg { width: 20px; height: 20px; }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
@@ -97,9 +105,8 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .logo-text { display: flex; flex-direction: column; }
 .logo-main {
   font-size: 16px; font-weight: 800;
-  background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
 }
 .logo-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
 
@@ -115,11 +122,12 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 }
 .nav-item:hover { background: var(--bg-600); color: var(--text-primary); }
 .nav-item.active {
-  background: linear-gradient(135deg, #00d4ff15, #7c3aed20);
-  color: var(--brand-1);
-  border: 1px solid #00d4ff25;
+  background: var(--bg-600);
+  color: var(--text-primary);
+  border: 1px solid var(--panel-border);
 }
-.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; }
+.nav-icon svg { width: 17px; height: 17px; }
 
 .sidebar-footer {
   padding: 16px;
@@ -136,7 +144,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   animation: pulse-dot 2s infinite;
 }
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 #00e67644; }
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 #0ECB8144; }
   50%       { opacity: 0.7; box-shadow: 0 0 0 4px transparent; }
 }
 .status-dot.closed { background: var(--red); animation: none; }
@@ -176,7 +184,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   padding: 9px 14px; font-size: 13px; outline: none;
   font-family: inherit; transition: border-color var(--transition);
 }
-.search-bar:focus { border-color: var(--brand-1); box-shadow: 0 0 0 2px #00d4ff20; }
+.search-bar:focus { border-color: var(--brand-1); box-shadow: 0 0 0 2px #ffffff20; }
 .search-btn {
   background: var(--bg-500); border: 1px solid var(--panel-border);
   color: var(--text-primary); border-radius: var(--radius-sm);
@@ -196,10 +204,11 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .change-down { color: var(--red); }
 .change-neutral { color: var(--text-secondary); }
 .gemini-badge {
-  background: linear-gradient(135deg, #7c3aed30, #00d4ff20);
-  border: 1px solid #7c3aed50;
-  color: var(--brand-1); padding: 7px 12px;
+  background: var(--bg-600);
+  border: 1px solid var(--panel-border);
+  color: var(--text-secondary); padding: 7px 12px;
   border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 /* ─── Pages ─────────────────────────────────────── */
@@ -235,11 +244,12 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   opacity: 0;
   transition: opacity var(--transition);
 }
-.stat-card:hover { transform: translateY(-2px); border-color: #2a3a5e; }
+.stat-card:hover { transform: translateY(-2px); border-color: #34343c; }
 .stat-card:hover::before { opacity: 1; }
-.stat-card.glow-green { border-color: #00e67625; }
+.stat-card.glow-green { border-color: #0ECB8125; }
 .stat-card.glow-green::before { opacity: 1; background: linear-gradient(90deg, var(--green), var(--brand-1)); }
-.stat-icon { font-size: 28px; }
+.stat-icon { font-size: 28px; color: var(--text-secondary); }
+.stat-icon svg { width: 26px; height: 26px; }
 .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
 .stat-value { font-size: 20px; font-weight: 800; margin: 4px 0; font-family: 'JetBrains Mono', monospace; }
 .stat-sub { font-size: 12px; color: var(--text-secondary); }
@@ -279,10 +289,10 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 }
 .watchlist-table td {
   padding: 10px 14px;
-  border-bottom: 1px solid #131d30;
+  border-bottom: 1px solid #202026;
   font-size: 13px;
 }
-.watchlist-table tbody tr:hover { background: #0d1626; }
+.watchlist-table tbody tr:hover { background: #15151a; }
 .watchlist-table tbody tr:last-child td { border-bottom: none; }
 .ticker-cell { font-weight: 700; color: var(--brand-1); font-family: 'JetBrains Mono', monospace; }
 .price-cell { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
@@ -290,11 +300,11 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   display: inline-block; padding: 3px 10px;
   border-radius: 20px; font-size: 11px; font-weight: 600;
 }
-.signal-STRONG-BUY { background: #00e67620; color: var(--green); border: 1px solid #00e67640; }
-.signal-BUY        { background: #00c96420; color: #4ade80; border: 1px solid #4ade8040; }
-.signal-HOLD       { background: #ffd60020; color: var(--yellow); border: 1px solid #ffd60040; }
-.signal-SELL       { background: #ff6b0020; color: #f97316; border: 1px solid #f9731640; }
-.signal-STRONG-SELL{ background: #ff3d3d20; color: var(--red); border: 1px solid #ff3d3d40; }
+.signal-STRONG-BUY { background: #0ECB8120; color: var(--green); border: 1px solid #0ECB8140; }
+.signal-BUY        { background: #0ECB8120; color: #0ECB81; border: 1px solid #0ECB8140; }
+.signal-HOLD       { background: #F0B90B20; color: var(--yellow); border: 1px solid #F0B90B40; }
+.signal-SELL       { background: #F6465D20; color: #e58e26; border: 1px solid #e58e2640; }
+.signal-STRONG-SELL{ background: #F6465D20; color: var(--red); border: 1px solid #F6465D40; }
 
 .btn-analyze-row {
   background: var(--bg-500); border: 1px solid var(--panel-border);
@@ -310,17 +320,17 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   border-radius: var(--radius-sm);
   margin-bottom: 16px;
 }
-.outlook-sentiment.BULLISH { background: #00e67615; border: 1px solid #00e67630; }
-.outlook-sentiment.BEARISH { background: #ff3d3d15; border: 1px solid #ff3d3d30; }
-.outlook-sentiment.NETRAL  { background: #ffd60015; border: 1px solid #ffd60030; }
+.outlook-sentiment.BULLISH { background: #0ECB8115; border: 1px solid #0ECB8130; }
+.outlook-sentiment.BEARISH { background: #F6465D15; border: 1px solid #F6465D30; }
+.outlook-sentiment.NETRAL  { background: #F0B90B15; border: 1px solid #F0B90B30; }
 .sentiment-label { font-size: 20px; font-weight: 800; }
 .outlook-picks { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .pick-badge {
   padding: 4px 10px; border-radius: 20px;
-  background: #00e67620; color: var(--green);
+  background: #0ECB8120; color: var(--green);
   font-weight: 700; font-size: 12px; cursor: pointer;
 }
-.pick-badge:hover { background: #00e67640; }
+.pick-badge:hover { background: #0ECB8140; }
 
 /* ─── Positions ─────────────────────────────────── */
 .positions-grid {
@@ -332,7 +342,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   border-radius: var(--radius-sm); padding: 16px;
   transition: border-color var(--transition);
 }
-.position-card:hover { border-color: #2a3a5e; }
+.position-card:hover { border-color: #34343c; }
 .pos-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .pos-ticker { font-size: 16px; font-weight: 800; color: var(--brand-1); }
 .pos-metric { display: flex; justify-content: space-between; font-size: 12px; margin: 4px 0; }
@@ -352,7 +362,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   font-family: inherit; letter-spacing: 1px; text-transform: uppercase;
   transition: border-color var(--transition);
 }
-.analyze-input:focus { border-color: var(--brand-1); box-shadow: 0 0 0 3px #00d4ff15; }
+.analyze-input:focus { border-color: var(--brand-1); box-shadow: 0 0 0 3px #ffffff15; }
 .btn-analyze {
   display: flex; align-items: center; gap: 10px;
   background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
@@ -386,10 +396,22 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   border-radius: var(--radius-lg); padding: 40px 60px;
   max-width: 480px; width: 100%;
 }
-.ai-pulse { font-size: 56px; animation: pulse-ai 1.5s ease-in-out infinite; margin-bottom: 16px; }
+.ai-pulse {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+  width: 84px; height: 84px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  border: 2px solid var(--panel-border);
+  border-top-color: var(--text-primary);
+  border-radius: 50%;
+  animation: pulse-ai 1.5s ease-in-out infinite;
+}
 @keyframes pulse-ai {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px #00d4ff); }
-  50%       { transform: scale(1.1); filter: drop-shadow(0 0 20px #7c3aed); }
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50%      { transform: rotate(180deg) scale(1.05); }
 }
 .ai-loading-animation h3 { color: var(--brand-1); margin-bottom: 24px; }
 .progress-steps { text-align: left; }
@@ -398,10 +420,10 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   font-size: 13px; color: var(--text-muted);
   transition: all 0.3s ease;
 }
-.step.active { color: var(--brand-1); background: #00d4ff15; }
+.step.active { color: var(--brand-1); background: #ffffff15; }
 .step.done { color: var(--green); }
-.step.done::before { content: '✅ '; }
-.step.active::before { content: '⚡ '; }
+.step.done::before { content: '✓ '; }
+.step.active::before { content: '› '; }
 
 /* ─── Stock Header Card ─────────────────────────── */
 .stock-header-card {
@@ -453,6 +475,27 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 }
 .score-signal { font-size: 11px; font-weight: 700; }
 
+.scores-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.scores-header-title {
+  font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;
+}
+.score-mode-toggle { display: flex; gap: 4px; }
+.score-mode-toggle button {
+  background: var(--bg-600); border: 1px solid var(--panel-border);
+  color: var(--text-secondary); padding: 3px 14px; border-radius: 6px;
+  font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: all var(--transition);
+}
+.score-mode-toggle button:hover { color: var(--text-primary); }
+.score-mode-toggle button.active { background: var(--brand-1); color: var(--bg-900); border-color: var(--brand-1); }
+.score-mode-toggle button:disabled { opacity: 0.35; cursor: not-allowed; }
+.score-delta { font-size: 10px; font-weight: 700; margin-bottom: 4px; }
+.score-delta.up { color: var(--green); }
+.score-delta.down { color: var(--red); }
+
 /* ─── AI Recommendation Banner ──────────────────── */
 .ai-recommendation {
   border-radius: var(--radius-lg); padding: 24px;
@@ -499,7 +542,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .metric-grid { padding: 10px 18px 14px; }
 .metric-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; border-bottom: 1px solid #131d30;
+  padding: 8px 0; border-bottom: 1px solid #202026;
 }
 .metric-row:last-child { border-bottom: none; }
 .metric-name { font-size: 12px; color: var(--text-secondary); }
@@ -509,7 +552,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 }
 .indicator-bar {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 18px; border-bottom: 1px solid #131d30;
+  padding: 8px 18px; border-bottom: 1px solid #202026;
 }
 .ind-name { font-size: 12px; color: var(--text-secondary); width: 90px; flex-shrink: 0; }
 .ind-bar-wrap { flex: 1; height: 6px; background: var(--bg-600); border-radius: 3px; overflow: hidden; }
@@ -520,7 +563,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 /* ─── News ──────────────────────────────────────── */
 .news-list { padding: 10px 18px; }
 .news-item {
-  padding: 10px 0; border-bottom: 1px solid #131d30;
+  padding: 10px 0; border-bottom: 1px solid #202026;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -529,14 +572,14 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   padding-left: 4px;
 }
 .news-item.whale-article {
-  background: rgba(0, 212, 255, 0.04);
+  background: rgba(255,255,255,0.04);
   border-left: 3px solid var(--brand-1);
   padding-left: 10px !important;
   margin: 6px 0;
   border-radius: 4px;
 }
 .news-item.whale-article:hover {
-  background: rgba(0, 212, 255, 0.08);
+  background: rgba(255,255,255,0.08);
 }
 .news-item:last-child { border-bottom: none; }
 .news-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; line-height: 1.4; }
@@ -544,19 +587,55 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .news-sentiment {
   font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 700;
 }
-.news-sent-POSITIF       { background: #00e67615; color: var(--green); }
-.news-sent-NEGATIF       { background: #ff3d3d15; color: var(--red); }
-.news-sent-NETRAL        { background: #ffd60015; color: var(--yellow); }
-.news-sent-CUKUP-POSITIF { background: #4ade8015; color: #4ade80; }
-.news-sent-CUKUP-NEGATIF { background: #f9731615; color: #f97316; }
+.news-sent-POSITIF       { background: #0ECB8115; color: var(--green); }
+.news-sent-NEGATIF       { background: #F6465D15; color: var(--red); }
+.news-sent-NETRAL        { background: #F0B90B15; color: var(--yellow); }
+.news-sent-CUKUP-POSITIF { background: #0ECB8115; color: #0ECB81; }
+.news-sent-CUKUP-NEGATIF { background: #e58e2615; color: #e58e26; }
 
 /* ─── AI Detail Panel ───────────────────────────── */
 .ai-detail-panel { margin-bottom: 16px; }
 .gemini-badge-sm {
-  background: linear-gradient(135deg, #7c3aed30, #00d4ff20);
-  border: 1px solid #7c3aed50; color: var(--brand-1);
+  background: var(--bg-600);
+  border: 1px solid var(--panel-border); color: var(--text-secondary);
   padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
 }
+
+/* AI verdict overlay di atas tiap panel analisis */
+.ai-verdict {
+  padding: 10px 14px; font-size: 11px; line-height: 1.6;
+  color: var(--text-secondary); background: #ffffff08;
+  border-bottom: 1px solid var(--panel-border);
+}
+.ai-verdict strong { color: var(--brand-1); font-weight: 700; }
+
+/* ─── AI Trade Plan ─────────────────────────────── */
+.ai-trade-plan { margin-bottom: 16px; }
+.ai-plan-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 16px 18px; }
+.ai-plan-cell {
+  background: var(--bg-700); border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm); padding: 12px; text-align: center;
+}
+.ai-plan-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.ai-plan-price { font-size: 16px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+.ai-plan-price.entry { color: var(--green); }
+.ai-plan-price.sl    { color: var(--red); }
+.ai-plan-price.tp    { color: var(--green); }
+.ai-plan-price.lot   { color: var(--brand-1); }
+.ai-plan-sub { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+.ai-plan-actions {
+  display: flex; gap: 10px; padding: 0 18px 16px;
+}
+.ai-plan-btn {
+  flex: 1; padding: 12px; border-radius: var(--radius-sm);
+  border: 1px solid; font-size: 13px; font-weight: 800; cursor: pointer;
+  font-family: inherit; transition: all var(--transition);
+}
+.ai-plan-btn:hover { transform: translateY(-1px); }
+.ai-plan-btn.buy  { background: var(--green); border-color: var(--green); color: var(--bg-900); }
+.ai-plan-btn.buy:hover  { box-shadow: 0 4px 18px #0ECB8140; }
+.ai-plan-btn.sell { background: var(--red); border-color: var(--red); color: #fff; }
+.ai-plan-btn.sell:hover { box-shadow: 0 4px 18px #F6465D40; }
 .ai-content-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 18px; }
 .ai-section h4 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
 .ai-narrative { padding: 18px; line-height: 1.7; font-size: 13px; color: var(--text-secondary); border-top: 1px solid var(--panel-border); }
@@ -566,26 +645,26 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   background: var(--bg-700); border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm); padding: 10px; text-align: center;
 }
-.target-card.bull { border-color: #00e67640; }
-.target-card.base { border-color: #ffd60040; }
-.target-card.bear { border-color: #ff3d3d40; }
+.target-card.bull { border-color: #0ECB8140; }
+.target-card.base { border-color: #F0B90B40; }
+.target-card.bear { border-color: #F6465D40; }
 .target-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
 .target-price { font-size: 16px; font-weight: 800; font-family: 'JetBrains Mono', monospace; margin: 4px 0; }
 .target-pct { font-size: 11px; font-weight: 700; }
 .entry-table { width: 100%; }
-.entry-row { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; border-bottom: 1px solid #131d30; }
+.entry-row { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; border-bottom: 1px solid #202026; }
 .entry-row:last-child { border-bottom: none; }
 .entry-label { color: var(--text-secondary); }
 .entry-value { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
 .entry-value.entry  { color: var(--brand-1); }
 .entry-value.sl     { color: var(--red); }
 .entry-value.tp1    { color: var(--green); }
-.entry-value.tp2    { color: #4ade80; }
-.entry-value.tp3    { color: #86efac; }
+.entry-value.tp2    { color: #0ECB81; }
+.entry-value.tp3    { color: #0ECB81; }
 .entry-value.rr     { color: var(--yellow); }
 .catalyst-list, .risk-list { list-style: none; }
-.catalyst-list li::before { content: '✅ '; }
-.risk-list li::before     { content: '⚠️ '; }
+.catalyst-list li::before { content: '✓ '; }
+.risk-list li::before     { content: '! '; }
 .catalyst-list li, .risk-list li { font-size: 12px; padding: 4px 0; color: var(--text-secondary); }
 .order-instructions-box {
   padding: 14px 18px;
@@ -600,21 +679,21 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   display: flex; gap: 12px; padding: 16px 0; margin-bottom: 20px;
 }
 .btn-buy {
-  background: linear-gradient(135deg, #00e67620, #00c96430);
+  background: linear-gradient(135deg, #0ECB8120, #0ECB8130);
   border: 2px solid var(--green); color: var(--green);
   padding: 14px 32px; border-radius: var(--radius-sm);
   font-size: 15px; font-weight: 800; cursor: pointer;
   transition: all var(--transition); letter-spacing: 1px;
 }
-.btn-buy:hover { background: var(--green); color: var(--bg-900); box-shadow: 0 0 20px #00e67640; }
+.btn-buy:hover { background: var(--green); color: var(--bg-900); box-shadow: 0 0 20px #0ECB8140; }
 .btn-sell {
-  background: linear-gradient(135deg, #ff3d3d20, #ff6b0030);
+  background: linear-gradient(135deg, #F6465D20, #F6465D30);
   border: 2px solid var(--red); color: var(--red);
   padding: 14px 32px; border-radius: var(--radius-sm);
   font-size: 15px; font-weight: 800; cursor: pointer;
   transition: all var(--transition); letter-spacing: 1px;
 }
-.btn-sell:hover { background: var(--red); color: white; box-shadow: 0 0 20px #ff3d3d40; }
+.btn-sell:hover { background: var(--red); color: white; box-shadow: 0 0 20px #F6465D40; }
 .btn-neutral {
   background: var(--bg-600); border: 1px solid var(--panel-border);
   color: var(--text-primary); padding: 14px 24px;
@@ -673,7 +752,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .summary-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; }
 .total-row { border-top: 1px solid var(--panel-border); margin-top: 8px; padding-top: 8px; font-weight: 800; font-size: 13px; }
 .position-calc {
-  background: var(--bg-700); border: 1px solid #7c3aed30;
+  background: var(--bg-700); border: 1px solid #9a9aa430;
   border-radius: var(--radius-sm); padding: 14px; margin: 16px 0;
 }
 .calc-header { font-size: 12px; font-weight: 700; color: var(--brand-2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
@@ -682,14 +761,14 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .calc-result { font-size: 12px; color: var(--brand-1); margin-top: 8px; font-weight: 600; }
 .btn-execute {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
-  background: linear-gradient(135deg, var(--green), #00c964);
+  background: linear-gradient(135deg, var(--green), #0ECB81);
   border: none; color: var(--bg-900);
   padding: 14px; border-radius: var(--radius-sm);
   font-size: 15px; font-weight: 800; cursor: pointer;
   transition: all var(--transition); letter-spacing: 1px;
 }
-.btn-execute:hover { opacity: 0.9; box-shadow: 0 4px 20px #00e67640; transform: translateY(-1px); }
-.btn-execute.sell-mode { background: linear-gradient(135deg, var(--red), #ff6b00); }
+.btn-execute:hover { opacity: 0.9; box-shadow: 0 4px 20px #0ECB8140; transform: translateY(-1px); }
+.btn-execute.sell-mode { background: linear-gradient(135deg, var(--red), #F6465D); }
 .order-right { display: flex; flex-direction: column; gap: 16px; }
 
 /* ─── Portfolio Full Page ───────────────────────── */
@@ -705,17 +784,17 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .port-positions-table { width: 100%; border-collapse: collapse; }
 .port-positions-table th, .port-positions-table td { padding: 12px 16px; text-align: left; }
 .port-positions-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); border-bottom: 1px solid var(--panel-border); }
-.port-positions-table td { font-size: 13px; border-bottom: 1px solid #131d30; }
+.port-positions-table td { font-size: 13px; border-bottom: 1px solid #202026; }
 .port-positions-table tr:last-child td { border-bottom: none; }
-.port-positions-table tr:hover td { background: #0d1626; }
+.port-positions-table tr:hover td { background: #15151a; }
 
 /* ─── History Table ─────────────────────────────── */
 .history-table { width: 100%; border-collapse: collapse; }
 .history-table th, .history-table td { padding: 10px 14px; text-align: left; }
 .history-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); border-bottom: 1px solid var(--panel-border); }
-.history-table td { font-size: 12px; border-bottom: 1px solid #131d30; }
+.history-table td { font-size: 12px; border-bottom: 1px solid #202026; }
 .history-table tr:last-child td { border-bottom: none; }
-.history-table tr:hover td { background: #0d1626; }
+.history-table tr:hover td { background: #15151a; }
 .trade-type-buy  { color: var(--green); font-weight: 700; }
 .trade-type-sell { color: var(--red); font-weight: 700; }
 
@@ -739,7 +818,7 @@ code { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .setting-steps li { font-size: 12px; color: var(--text-secondary); padding: 3px 0; }
 .code-block { background: var(--bg-600); padding: 8px 12px; border-radius: 6px; display: inline-block; margin-top: 4px; }
 .btn-danger {
-  background: #ff3d3d20; border: 1px solid #ff3d3d40;
+  background: #F6465D20; border: 1px solid #F6465D40;
   color: var(--red); padding: 8px 16px; border-radius: var(--radius-sm);
   cursor: pointer; font-size: 12px; font-weight: 600;
   transition: all var(--transition);
@@ -885,19 +964,19 @@ input:checked + .slider:before {
   letter-spacing: 1px;
 }
 .engine-badge.online {
-  background-color: #00e67615;
+  background-color: #0ECB8115;
   color: var(--green);
-  border: 1px solid #00e67640;
+  border: 1px solid #0ECB8140;
 }
 .engine-badge.offline {
-  background-color: #ff3d3d15;
+  background-color: #F6465D15;
   color: var(--red);
-  border: 1px solid #ff3d3d40;
+  border: 1px solid #F6465D40;
 }
 .engine-badge.scanning {
-  background-color: #ffd60015;
+  background-color: #F0B90B15;
   color: var(--yellow);
-  border: 1px solid #ffd60040;
+  border: 1px solid #F0B90B40;
   animation: blink 1.5s infinite;
 }
 @keyframes blink {
@@ -947,6 +1026,8 @@ input:checked + .slider:before {
   .scores-overview { grid-template-columns: repeat(2, 1fr); }
   .stats-grid { grid-template-columns: 1fr; }
   .action-bar { flex-direction: column; }
+  .ai-plan-grid { grid-template-columns: repeat(2, 1fr); }
+  .ai-plan-actions { flex-direction: column; }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -992,7 +1073,7 @@ input:checked + .slider:before {
   font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
   letter-spacing: 3px; transition: border-color var(--transition);
 }
-.ft-ticker-input:focus { border-color: var(--brand-1); box-shadow: 0 0 0 3px #00d4ff15; }
+.ft-ticker-input:focus { border-color: var(--brand-1); box-shadow: 0 0 0 3px #ffffff15; }
 .ft-fetch-btn {
   background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
   border: none; color: white; padding: 10px 14px; border-radius: var(--radius-sm);
@@ -1027,7 +1108,7 @@ input:checked + .slider:before {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   transition: all var(--transition);
 }
-.ft-lev-btn:hover { background: var(--bg-500); border-color: #2a3a5e; }
+.ft-lev-btn:hover { background: var(--bg-500); border-color: #34343c; }
 .ft-lev-btn.active { background: var(--bg-500); border-color: var(--brand-1); box-shadow: 0 0 0 1px var(--brand-1); }
 .lev-val { font-size: 18px; font-weight: 900; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); }
 .lev-sub { font-size: 10px; color: var(--text-muted); }
@@ -1071,7 +1152,7 @@ input:checked + .slider:before {
 }
 .ft-preset:hover { background: var(--bg-400); color: var(--text-primary); }
 .ft-preset-special {
-  background: #7c3aed20; border-color: #7c3aed50; color: var(--brand-2);
+  background: #9a9aa420; border-color: #9a9aa450; color: var(--brand-2);
 }
 .ft-preset-special:hover { background: var(--brand-2); color: white; }
 
@@ -1085,7 +1166,7 @@ input:checked + .slider:before {
 .ft-summary-body { padding: 12px 16px; }
 .ft-sum-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 5px 0; border-bottom: 1px solid #131d30; font-size: 12px;
+  padding: 5px 0; border-bottom: 1px solid #202026; font-size: 12px;
 }
 .ft-sum-row:last-child { border-bottom: none; }
 .ft-sum-label { color: var(--text-secondary); }
@@ -1104,25 +1185,26 @@ input:checked + .slider:before {
   transition: all var(--transition); position: relative; overflow: hidden;
 }
 .ft-btn-buy {
-  background: linear-gradient(135deg, #00e67618, #00c96430);
+  background: linear-gradient(135deg, #0ECB8118, #0ECB8130);
   border-color: var(--green); color: var(--green);
 }
 .ft-btn-buy:hover {
   background: var(--green); color: var(--bg-900);
-  box-shadow: 0 0 24px #00e67650; transform: translateY(-2px);
+  box-shadow: 0 0 24px #0ECB8150; transform: translateY(-2px);
 }
 .ft-btn-buy:active { transform: translateY(0); }
 .ft-btn-sell {
-  background: linear-gradient(135deg, #ff3d3d18, #ff6b0030);
+  background: linear-gradient(135deg, #F6465D18, #F6465D30);
   border-color: var(--red); color: var(--red);
 }
 .ft-btn-sell:hover {
   background: var(--red); color: white;
-  box-shadow: 0 0 24px #ff3d3d50; transform: translateY(-2px);
+  box-shadow: 0 0 24px #F6465D50; transform: translateY(-2px);
 }
 .ft-btn-sell:active { transform: translateY(0); }
 .ft-btn-buy:disabled, .ft-btn-sell:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
-.ft-btn-icon { font-size: 20px; }
+.ft-btn-icon { font-size: 20px; display: flex; align-items: center; justify-content: center; }
+.ft-btn-icon svg { width: 20px; height: 20px; }
 .ft-btn-text { font-size: 18px; font-weight: 900; letter-spacing: 2px; }
 .ft-btn-sub { font-size: 10px; font-family: 'JetBrains Mono', monospace; opacity: 0.8; }
 
@@ -1177,27 +1259,27 @@ input:checked + .slider:before {
   align-items: center;
   gap: 5px;
   padding: 2px 9px;
-  background: #00e67612;
-  border: 1px solid #00e67640;
+  background: #0ECB8112;
+  border: 1px solid #0ECB8140;
   border-radius: 20px;
   font-size: 10px;
   font-weight: 700;
-  color: #00e676;
+  color: #0ECB81;
   cursor: default;
   user-select: none;
 }
 .sse-badge .sse-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: #00e676;
+  background: #0ECB81;
   animation: rtPulse 1.4s infinite;
 }
 .sse-badge.offline {
-  background: #ff3d3d10;
-  border-color: #ff3d3d30;
-  color: #ff3d3d;
+  background: #F6465D10;
+  border-color: #F6465D30;
+  color: #F6465D;
 }
-.sse-badge.offline .sse-dot { background: #ff3d3d; animation: none; }
+.sse-badge.offline .sse-dot { background: #F6465D; animation: none; }
 
 /* ── Panel Realtime ── */
 .rt-live-panel {
@@ -1317,8 +1399,8 @@ input:checked + .slider:before {
 .rt-trade-type { font-weight: 700; min-width: 55px; }
 
 /* ── Flash animation ── */
-@keyframes rtFlashGreen { 0%,100%{background:transparent} 50%{background:#00e67625} }
-@keyframes rtFlashRed   { 0%,100%{background:transparent} 50%{background:#ff3d3d25} }
+@keyframes rtFlashGreen { 0%,100%{background:transparent} 50%{background:#0ECB8125} }
+@keyframes rtFlashRed   { 0%,100%{background:transparent} 50%{background:#F6465D25} }
 
 /* ============================================================
    SELL DRAWER — slide up panel jual saham dari portfolio
@@ -1402,8 +1484,8 @@ input:checked + .slider:before {
   transition: all 0.15s;
 }
 .sd-lot-quick button:hover {
-  background: #ff3d3d18;
-  border-color: #ff3d3d60;
+  background: #F6465D18;
+  border-color: #F6465D60;
   color: var(--red);
 }
 
@@ -1497,7 +1579,7 @@ input:checked + .slider:before {
   width: calc(100% - 40px);
   margin: 16px 20px 0;
   padding: 16px;
-  background: linear-gradient(135deg, #ff3d3d, #cc0000);
+  background: linear-gradient(135deg, #F6465D, #cc0000);
   border: none;
   border-radius: 14px;
   color: #fff;
@@ -1573,14 +1655,14 @@ input:checked + .slider:before {
 
 .pos-btn-sell {
   padding: 5px 12px;
-  background: #ff3d3d15;
-  border: 1px solid #ff3d3d50;
+  background: #F6465D15;
+  border: 1px solid #F6465D50;
   border-radius: 8px;
-  color: #ff3d3d;
+  color: #F6465D;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
 }
-.pos-btn-sell:hover { background: #ff3d3d30; }
+.pos-btn-sell:hover { background: #F6465D30; }

@@ -10,6 +10,14 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
+# Auto-detect provider berdasarkan format key
+# sk-... = OpenRouter/DeepSeek (OpenAI-compatible)
+# AIza... = Google Gemini
+AI_PROVIDER = "openrouter" if GEMINI_API_KEY.startswith("sk-") else "kenari" if GEMINI_API_KEY.startswith("kn-") else "gemini"
+OPENROUTER_BASE_URL = "https://kenari.id/v1" if GEMINI_API_KEY.startswith("kn-") else "https://openrouter.ai/api/v1"
+# Model default untuk kenari.id (gratis)
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "deepseek-v4-flash:free")
+
 # ─── Paper Trading ─────────────────────────────────────────
 INITIAL_CAPITAL = float(os.getenv("INITIAL_CAPITAL", 100_000_000))
 BROKER_NAME     = os.getenv("BROKER_NAME", "mirae")
